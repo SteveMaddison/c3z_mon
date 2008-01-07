@@ -22,6 +22,19 @@ ide_config:		equ	ide_internal_buffer + 512
 
 fs_buffer_ptr:		equ	ide_config + 1
 
+slip_internal_buffer:	equ	fs_buffer_ptr + 2
+; Historical (BSD) maximum datagram size, including headers, but
+; excluding special framing characters.
+slip_buffer_size:	equ	1006
+slip_buffer_end:	equ	slip_internal_buffer + slip_buffer_size - 1
+
+ip_addr:		equ	slip_buffer_end + 1
+ip_addr_length:		equ	4
+ip_addr_end:		equ	ip_addr + ip_addr_length - 1
+ip_hdr_scratch:		equ	ip_addr_end + 1
+ip_hdr_scratch_length:	equ	ip_ihl_min << 4
+ip_hdr_scratch_end:	equ	ip_hdr_scratch + ip_hdr_scratch_length - 1
+
 ;env_data_start:		equ	cli_buffer_end + 1
 ;env_data_size:		equ	512
 ;env_data_end:		equ	env_data_start + env_data_size -1

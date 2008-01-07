@@ -8,6 +8,19 @@
 print_float:
 		ret
 
+; In: BCDE
+print_hex_32:
+		push	hl
+		push	bc
+		pop	hl
+		call	print_hex_16
+		push	de
+		pop	hl
+		call	print_hex_16
+		pop	hl
+		ret
+
+; In: HL
 print_hex_16:
 		push	af
 		ld	a,h
@@ -17,6 +30,7 @@ print_hex_16:
 		pop	af
 		ret
 
+; In: A
 print_hex_8:	push	af		; save
 		and	0xf0
 		srl	a		; shift upper nibble >> lower nibble

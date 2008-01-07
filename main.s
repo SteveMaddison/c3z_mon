@@ -15,6 +15,8 @@ version:		defm	"0.0.1\0"
 ; Include the various drivers...
 include		"uart.s"
 include		"ide.s"
+include		"slip.s"
+include		"ip.s"
 ; Include utility functions...
 include		"device.s"
 include		"fs.s"
@@ -51,15 +53,16 @@ start:
 		call	console_outb
 		call	console_outb
 
-		call	ide_init
+		;call	ide_init
+		call	ip_init
 
 		; two newlines before command prompt
 		ld	a,'\n'
 		call	console_outb
 		call	console_outb
 
-		ld	de,ide_dev_name_master
-		call	fs_create
+		;ld	de,ide_dev_name_master
+		;call	fs_create
 
 		jp	cli_input
 

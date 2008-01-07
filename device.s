@@ -72,16 +72,16 @@ dev_add_block:
 
 ; Name: dev_jp_driver
 ; Desc:	Jump to a driver function pointer
-; In:	HL = address of function pointer
+; In:	IX = address of function pointer
 dev_jp_driver:
 	; Jump as opposed to call, to preserve the return address.
-	jp	(hl)
+	jp	(ix)
 	; No "ret" here! We use that of the driver routine we just
 	; jumped to.
 
 ; Name:	dev_get_buffer
 ; Desc:	Fetch a valid buffer for a block device
-; In:	HL = address of device record.
+; In:	IX = address of device record.
 ; Out:	HL = buffer address.
 dev_get_buffer:
 	ld	iy,dev_driver_buffer
@@ -90,7 +90,7 @@ dev_get_buffer:
 
 ; Name:	dev_get_size
 ; Desc:	Fetch size of device
-; In:	HL = address of device record.
+; In:	IX = address of device record.
 ; Out:	BCDE = size of device in blocks.
 dev_get_size:
 	ld	iy,dev_driver_size
@@ -99,16 +99,17 @@ dev_get_size:
 
 ; Name: dev_call_driver
 ; Desc: Call a device's driver routine
-; In:	HL = address of device record
+; In:	IX = address of device record
+;	HL = address of buffer (where applicable)
 ; Out:	Depends on driver routine
 dev_call_driver:
+	push	ix
 	push	hl
-	pop	ix
+	push	bc
 	ld	a,(ix+dev_struct_id)		; Load device ID
 	ld	l,(ix+dev_struct_driver)	; Point to drivers
 	ld	h,(ix+dev_struct_driver+1)
-	; Get the function pointer at (HL) + dev_driver_size
-	push	bc		; Save
+	; Get the function pointer at (HL+IY)
 	push	iy
 	pop	bc
 	and	a
@@ -117,9 +118,23 @@ dev_call_driver:
 	inc	hl
 	ld	b,(hl)
 	push	bc
+	pop	ix
+	pop	bc		; Restore original parameters
 	pop	hl
-	pop	bc		; Restore original parameter
 	call	dev_jp_driver
+	pop	ix
+	ret
+
+; Name:	dev_read
+; Desc:	Read form a device
+; In:	IX = address of device record.
+;	For block devices:
+;		BCDE = block number
+;		HL = address of buffer
+; Out:	Depends on driver routine
+dev_read:
+	ld	iy,dev_driver_read
+	call	dev_call_driver
 	ret
 
 ; Name: dev_search
@@ -132,6 +147,20 @@ dev_call_driver:
 dev_search:
 	ld	hl,dev_start_ptr
 	call	ll_search_str
+	ret
+
+; Name:	dev_write
+; Desc:	Write to a device
+; In:	IX = address of device record.
+;	For character devices:
+;		A = data to write
+;	For block devices:
+;		BCDE = block number
+;		HL = address of buffer
+; Out:	Depends on driver routine
+dev_write:
+	ld	iy,dev_driver_write
+	call	dev_call_driver
 	ret
 
 dev_list_print:

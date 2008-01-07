@@ -319,7 +319,43 @@ fs_create_write_root_ptr:
 fs_create_write_atb:
 		dec	de
 
-
+		; Store number of sectors per block in B'C'D'E' (required for the
+		; calls to fs_zero_block).
+		exx
+		ld	hl,fs_buffer_ptr
+		ld	bc,fs_super_block_size
+		and	a
+		adc	hl,bc
+		ld	b,0
+		ld	c,(hl)
+		inc	hl
+		ld	d,(hl)
+		inc	hl
+		ld	e,(hl)
+		ld	a,(ix+dev_struct_block_size)
+fs_create_calc_sectors_loop:
+		cp	a,1
+		jp	z,fs_create_calc_sectors_done
+		srl	a
+		srl	c
+		rr	d
+		rr	e
+		jp	fs_create_calc_sectors_loop
+fs_create_calc_sectors_done:
+		exx
+fs_create_atb_loop:
+		ld	a,d			; Check DE for zero
+		or	e
+		jp	nz,fs_create_atb_zero
+		ld	a,b			; Check BC for zero too
+		or	c
+		jp	z,fs_create_atb_done
+		dec	bc
+fs_create_atb_zero:
+		call	fs_zero_block
+		dec	de
+		jp	fs_create_atb_loop
+fs_create_atb_done:
 
 	
 		xor	a		; Signal success
@@ -380,8 +416,6 @@ fs_zero_block_done:
 		pop	de
 		pop	bc
 		ret
-
-fs_sectors_per_block:
 
 ; In:	BCDE = Block number
 ;	B'C'D'E = number of sectors per block
