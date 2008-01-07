@@ -4,27 +4,40 @@
 ; Steve Maddison, 12/02/2007
 ;
 
-; *
-; * The following code is location dependent - don't edit anything between
-; * here and the end of the section (marked with a comment) unless you know
-; * exactly what you're doing!
-; *
 init:		org	0		; program starts at 0x0000
 		di			; turn off interrupts
 		ld	sp,0xffff	; init stack pointer
 		jp	start
 
 title:		defm	"Cosam 3Z Monitor Program\0"
-; As luck would have it, the above string pads up to 0x1f and the interrupt
-; table defined in intr.s starts at 0x20 - exaclty where it must stay!
-include		"intr.s"
-; *
-; * End of location-dependent section
-; *
+version:	defm	"0.0.1\0"
 
+; Include the various drivers...
 include		"uart.s"
+; Include utility functions...
+include		"calc.s"
+include		"cli.s"
 
-start:
-		call	intr_init
-		call	uart_init
+; Labels to console device functions (in this case the UART)
+console_outb:	equ	uart_tx
+console_outs:	equ	uart_tx_str
+console_inb:	equ	uart_rx
+
+start:		call	uart_init
+
+		ld	hl,title
+		call	console_outs
+		ld	a,' '
+		call	console_outb
+		ld	hl,version
+		call	console_outs
+
+		ld	a,'\n'
+		call	console_outb
+		call	console_outb
+
+		jp	cli_input
+
+; Include memory location data...
+include		"memmap.s"
 

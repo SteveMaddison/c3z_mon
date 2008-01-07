@@ -28,26 +28,6 @@ uart_init:	push	af
 		pop	af
 		ret
 
-; Interrupt handler routing
-uart_intr:	push	af
-		in	a,(uart_iir)	; fetch interrupt ID
-		bit	1,a
-		jp	z,uart_intr_line_status
-uart_intr_rx_data:
-		in	a,(uart_rbr)	; this will reset the IIR
-		;XXX			; save this somewhere!
-
-uart_intr_line_status:
-		in	a,(uart_lsr)	; this will reset the IIR
-		;XXX			; do something about this?
-		
-		pop	af
-		reti
-
-;
-; Subroutines
-;
-
 ; uart_rx
 ; Wait for a byte from the UART, and save it in A
 uart_rx:	call	uart_rx_ready
