@@ -13,7 +13,8 @@ uart_dlm:	equ	0x21	; Divisor Latch MSB (when DLAB=1 in LCR)
 
 ; Initialise the UART
 uart_init:	push	af
-		ld	a,0x05		; enable all RX interrupts
+		ld	a,0x00		; disable all interrupts
+		;ld	a,0x05		; enable all RX interrupts
 		out	(uart_ier),a
 		ld	a,0x0f		; enable and reset all FIFOs
 		out	(uart_fcr),a
@@ -51,6 +52,7 @@ uart_tx:	call	uart_tx_ready
 
 ; uart_tx_str
 ; Sends null-terminated string starting at HL to UART
+; XXX - can maybe optimised using CPI instruction?
 uart_tx_str:		push	af
 uart_tx_str_loop:	ld	a,(hl)
 			cp	0

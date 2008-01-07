@@ -1,5 +1,5 @@
 TARGETS=monitor.obj
-SRCS=main.s uart.s calc.s memmap.s cli.s
+SRCS=main.s uart.s calc.s memmap.s cli.s print.s
 
 all:		${TARGETS}
 
@@ -9,4 +9,7 @@ clean:
 monitor.obj:	$(SRCS)
 		z80asm -o $@ $<
 		@ls -l $@ | awk '{print $$8 ": " $$5 " bytes"}'
+
+dump:		$(TARGETS)
+		hexdump -C $<
 

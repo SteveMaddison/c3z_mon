@@ -21,10 +21,14 @@ cli_input_loop:
 ; elsif backspace
 		cp	0x08
 		jp	nz,cli_input_not_backspace
-		call	cli_check_buffer_empty
+		call	cli_check_buffer_start
 		jp	z,cli_input_bell
-		dec	bc
-		dec	de
+		call	cli_check_buffer_end
+		; Whatever happens, cursor needs to go back one
+		dec	bc			; dec will not affect zero flag
+		jp	nz,cli_input_remove	; if not at end, shift chars left
+		dec	de			; otherwise, just update the pointer
+		jp	cli_input_echo
 cli_input_not_backspace:
 ; elsif del
 		cp	0x10
@@ -34,27 +38,30 @@ cli_input_not_backspace:
 		call	cli_check_buffer_end
 		; HL now = number of chars to buffer end
 		jp	z,cli_input_bell
+cli_input_remove:
+		; common code for backspace and delete
 		push	bc	; save
 		push	de
 		; register swapery: HL -> BC -> DE and BC+1 -> HL
 		push	bc
-		inc	bc
 		push	bc
 		push	hl
 		pop	bc
 		pop	hl
+		inc	hl
 		pop	de
 		ldir		; move block
 		pop	de	; restore original values
 		pop	bc
 		dec	de	; string is shortened
+		jp	cli_input_echo
 cli_input_not_del:
 ; elsif esc
 		cp	0x1b
 		jp	nz,cli_input_not_esc
 		call	console_inb		; get next char of the escape code
 		cp	'['
-		jp	z,cli_input_bell	; unsupported escape code
+		jp	nz,cli_input_bell	; unsupported escape code
 		call	console_inb		; fetch char after ESC-[
 		cp	'D'			; left arrow
 		jp	z,cli_input_cursor_left
@@ -65,10 +72,12 @@ cli_input_cursor_left:
 		call	cli_check_buffer_start
 		jp	z,cli_input_loop
 		dec	bc
+		jp	cli_input_loop
 cli_input_cursor_right:
 		call	cli_check_buffer_end
 		jp	z,cli_input_loop
 		inc	bc
+		jp	cli_input_loop
 cli_input_not_esc:
 ; elsif character < 0x20
 		cp	0x20
@@ -81,6 +90,7 @@ cli_input_not_esc:
 		; HL now = number of chars to buffer end
 		jp	z,cli_input_add
 		push	bc	; save
+		push	de
 		; register swapery: HL -> BC and DE-1 -> HL
 		; (DE already points just after end of input)
 		push	de
@@ -89,7 +99,8 @@ cli_input_not_esc:
 		pop	hl
 		dec	hl
 		lddr		; move block
-		pop	bc	; restore value
+		pop	de	; restore values
+		pop	bc
 cli_input_add:
 		ld	(bc),a			; save byte to buffer
 		inc	bc			; increment pointers
@@ -113,7 +124,8 @@ cli_input_done:
 ; Returns with zero flag set if buffer is empty
 cli_check_buffer_empty:
 		ld	hl,cli_buffer
-		sbc	hl,bc
+		and	a
+		sbc	hl,de
 		ret
 
 ; Returns with zero flag set if we're at the end of the input
@@ -121,6 +133,7 @@ cli_check_buffer_empty:
 cli_check_buffer_end:
 		push	de
 		pop	hl
+		and	a
 		sbc	hl,bc
 		ret
 
@@ -128,13 +141,15 @@ cli_check_buffer_end:
 ; HL = number of bytes left in buffer
 cli_check_buffer_full:
 		ld	hl,cli_buffer_end
-		sbc	hl,bc
+		and	a
+		sbc	hl,de
 		ret
 
 ; Returns with zero flag set if we're at the start of the input
 ; HL = current position in buffer
 cli_check_buffer_start:
 		ld	hl,cli_buffer
+		and	a
 		sbc	hl,bc
 		ret
 

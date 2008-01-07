@@ -17,14 +17,17 @@ include		"uart.s"
 ; Include utility functions...
 include		"calc.s"
 include		"cli.s"
+include		"print.s"
 
 ; Labels to console device functions (in this case the UART)
 console_outb:	equ	uart_tx
 console_outs:	equ	uart_tx_str
 console_inb:	equ	uart_rx
 
-start:		call	uart_init
+start:		
+		call	uart_init
 
+		; output banner to console
 		ld	hl,title
 		call	console_outs
 		ld	a,' '
@@ -32,6 +35,11 @@ start:		call	uart_init
 		ld	hl,version
 		call	console_outs
 
+		; send a bell
+		ld	a,0x07
+		call	console_outb
+
+		; two newlines before command prompt
 		ld	a,'\n'
 		call	console_outb
 		call	console_outb

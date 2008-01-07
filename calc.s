@@ -4,6 +4,21 @@
 ; Steve Maddison, 12/02/2007
 ;
 
+; Name: calc_2s_comp_16
+; Desc: Calculate 2's complement of 16-bit value
+; In:	HL = value to complement
+; Out:	HL = complemented value
+calc_2s_comp_16:
+		push	af
+		ld	a,h
+		cpl
+		ld	h,a
+		ld	a,l
+		cpl
+		ld	l,a
+		inc	hl
+		pop	af
+		ret
 
 ; Name: calc_int_div_8
 ; Desc:	Divide two 8-bit integers with 8-bit result
