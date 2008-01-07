@@ -11,6 +11,11 @@ uart_scr:	equ	0x27	; Scratch Register
 uart_dll:	equ	0x20	; Divisor Latch LSB (when DLAB=1 in LCR)
 uart_dlm:	equ	0x21	; Divisor Latch MSB (when DLAB=1 in LCR)
 
+uart_dev_name:	defm	"ser0\0"
+
+uart_driver:	defw	uart_rx
+		defw	uart_tx
+
 ; Initialise the UART
 uart_init:	push	af
 		ld	a,0x00		; disable all interrupts
@@ -20,15 +25,20 @@ uart_init:	push	af
 		;out	(uart_fcr),a
 		ld	a,0x80		; Set DLAB
 		out	(uart_lcr),a
-		;ld	a,96		; Divisor of 96 = 1200 bps with 1.8432 MHz clock
-		;ld	a,48		; Divisor of 48 = 2400 bps with 1.8432 MHz clock
-		;ld	a,24		; Divisor of 24 = 4800 bps with 1.8432 MHz clock
 		ld	a,12		; Divisor of 12 = 9600 bps with 1.8432 MHz clock
 		out	(uart_dll),a
 		ld	a,00
 		out	(uart_dlm),a
 		ld	a,0x03		; 8 bits, 1 stop, no parity (and clear DLAB)
 		out	(uart_lcr),a	; write new value back
+
+		; Add a new device
+		ld	a,0			; ID
+		ld	b,dev_flag_char		; Flags
+		ld	de,uart_driver		; Driver
+		ld	hl,uart_dev_name	; Name
+		call	dev_add
+
 		pop	af
 		ret
 

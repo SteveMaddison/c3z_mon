@@ -11,6 +11,14 @@ ide_data_lsb:		equ	0x40
 ide_data_msb:		equ	0x41
 ide_control:		equ	0x42
 
+ide_dev_name_master:	defm	"hd0\0"
+ide_dev_name_slave:	defm	"hd1\0"
+
+ide_driver:		defw	ide_sector_read
+			defw	ide_sector_write
+			defw	ide_get_size
+			defw	ide_get_buffer
+
 ; IDE Regsiters (values for the control port)
 ; Bit 0-2 = Addr0-2, Bit 3 = /CS0, Bit 4 = /CS1
 ide_reg_data:		equ	0x10	; 0: Data port
@@ -74,7 +82,7 @@ ide_cmd_id:		equ	0xec	; Identify device
 ; Offsets into IDE device identification info
 ide_info_name:		equ	0x36
 ide_info_name_len:	equ	40
-ide_info_sector:	equ	0x72	; Two 16-bit words, least significant first
+ide_info_size:		equ	0x72	; Two 16-bit words, least significant first
 
 ; Initialisation messages
 ide_init_header:	defm	"IDE devices\n\0";
@@ -172,6 +180,13 @@ ide_error_str_end:
 		pop	bc
 		ret
 
+; Name: ide_get_buffer
+; Desc: Return address of internal buffer
+; Out:	HL = buffer address;
+ide_get_buffer:
+		ld	hl,ide_internal_buffer
+		ret
+
 ; Name:	ide_get_id
 ; Desc:	Fetch device identifier.
 ; In:	HL = address of input buffer (0 for internal buffer)
@@ -229,12 +244,36 @@ ide_get_name_trim:
 		djnz	ide_get_name_trim
 ide_get_name_ok:
 		xor	a	; set zero flag
-ide_get_name_end:
 		; Point HL to start of string
 		ld	hl,ide_info_name + ide_internal_buffer
+ide_get_name_end:
 		pop	bc
 		ret
 
+; Name: ide_get_size
+; Desc: Fetch size of device in blocks
+; In:	A = IDE device ID
+; Out:	BCDE = Number of blocks,
+;	ZF   = 1 on success,
+;	A    = IDE error code.
+ide_get_size:
+		ld	(ide_config),a
+		ld	hl,0	; Use internal buffer
+		call	ide_get_id
+		jp	nz,ide_get_size_end
+		jp	c,ide_get_size_end
+		ld	a,(ide_info_size + ide_internal_buffer)
+		ld	d,a
+		ld	a,(ide_info_size + ide_internal_buffer + 1)
+		ld	e,a
+		ld	a,(ide_info_size + ide_internal_buffer + 2)
+		ld	b,a
+		ld	a,(ide_info_size + ide_internal_buffer + 3)
+		ld	c,a
+		xor	a
+ide_get_size_end:
+		ret
+		
 ; Name: ide_get_status
 ; Desc:	Fetch contents of the status register
 ; In:	none
@@ -245,6 +284,70 @@ ide_get_status:
 		in	a,(ide_data_lsb)
 		ret
 
+; Name:	ide_init
+; Desc:	Initialise and list devices
+ide_init:
+		; Output header text
+		ld	hl,ide_init_header
+		call	console_outs
+		; Info for master
+		ld	hl,ide_init_master
+		ld	a,ide_config_master
+		call	ide_init_dev
+		; Info for slave
+		ld	hl,ide_init_slave
+		ld	a,ide_config_slave
+		call	ide_init_dev
+		ret
+
+; Name: ide_init_dev
+; Desc: Helper for ide_init - scans for device, then initialises it and
+;	prints an info line as necessary.
+; In:	A  = IDE config parameters
+;	HL = Address of string constant
+;	IY = Device name
+ide_init_dev:
+		push	bc
+		push	de
+		call	console_outs
+		ld	(ide_config),a
+		call	ide_config_check
+		ld	b,10			; Try ten times
+ide_init_dev_get_name:
+		call	ide_get_name
+		jp	z,ide_init_dev_found
+		djnz	ide_init_dev_get_name
+		jp	nc,ide_init_dev_error
+		ld	hl,ide_init_none
+		jp	ide_init_dev_print
+ide_init_dev_error:
+		call	ide_error_str
+		jp	ide_init_dev_print
+ide_init_dev_found:
+		push	hl
+		; Add a new device
+		ld	a,(ide_config)
+		and	ide_config_slave
+		jp	nz,ide_init_dev_slave
+		ld	hl,ide_dev_name_master
+		jp	ide_init_dev_add
+ide_init_dev_slave:
+		ld	hl,ide_dev_name_slave
+ide_init_dev_add:
+		ld	a,(ide_config)		; ID
+		ld	b,dev_flag_block	; Flags
+		ld	c,0x02			; Block size (512 >> 8)
+		ld	de,ide_driver		; Driver
+		call	dev_add
+		pop	hl
+ide_init_dev_print:
+		call	console_outs
+		ld	a,'\n'
+		call	console_outb
+		pop	de
+		pop	bc
+		ret
+		
 ; Name: ide_ready
 ; Desc:	Wait until device is ready.
 ; Out:	ZF = 1 on success, 0 if timed out.
@@ -269,48 +372,6 @@ ide_ready_data:
 		pop	bc
 		ret
 
-; Name:	ide_init
-; Desc:	Initialise and list devices
-ide_init:
-		; Output header text
-		ld	hl,ide_init_header
-		call	console_outs
-		; Info for master
-		ld	hl,ide_init_master
-		ld	a,ide_config_master
-		call	ide_init_info
-		; Info for slave
-		ld	hl,ide_init_slave
-		ld	a,ide_config_slave
-		call	ide_init_info
-		ret
-
-; Name: ide_init_info
-; Desc: Helper for ide_init - prints an info line for a device.
-; In:	A  = IDE config parameters
-;	HL = Address of string constant
-ide_init_info:
-		push	bc
-		call	console_outs
-		ld	(ide_config),a
-		call	ide_config_check
-		ld	b,10			; Try ten times
-ide_init_info_get_name:
-		call	ide_get_name
-		jp	z,ide_init_info_print
-		djnz	ide_init_info_get_name
-		jp	nc,ide_init_info_error
-		ld	hl,ide_init_none
-		jp	ide_init_info_print
-ide_init_info_error:
-		call	ide_error_str
-ide_init_info_print:
-		call	console_outs
-		ld	a,'\n'
-		call	console_outb
-		pop	bc
-		ret
-		
 ; Name: ide_sector_count
 ; Desc: Set IDE sector count register (currently always
 ;	to "1", although this could be parameterised).
@@ -323,13 +384,15 @@ ide_sector_count:
 
 ; Name:	ide_sector_read
 ; Desc:	Read one sector from device.
-; In:	BCDE = Sector index as per ide_sector_select,
+; In:	A    = IDE device ID
+; 	BCDE = Sector index as per ide_sector_select,
 ; 	HL   = address of input buffer (0 for internal buffer)
 ; Out:	ZF = 1 on success,
 ;	CF = 1 if timed out,
 ; 	A  = IDE error code,
 ;	HL = address of input buffer
 ide_sector_read:
+		ld	(ide_config),a
 		call	ide_set_buffer
 		push	hl				; Remember values
 		call	ide_ready			; Wait until device is ready
@@ -381,12 +444,14 @@ ide_sector_select:
 
 ; Name:	ide_sector_write
 ; Desc:	Write one sector to the device.
-; In:	BCDE = Sector index as per ide_sector_select,
+; In:	A    = IDE device ID
+;	BCDE = Sector index as per ide_sector_select,
 ; 	HL   = address of output buffer.
 ; Out:	ZF = 1 on success,
 ;	CF = 1 if timed out,
 ; 	A  = IDE error code.
 ide_sector_write:
+		ld	(ide_config),a
 		push	hl				; Remember values
 		call	ide_ready			; Wait until device is ready
 		jp	nz,ide_sector_write_error	; Timeout

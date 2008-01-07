@@ -8,12 +8,14 @@ error_div_0:		equ	0x01
 error_overflow:		equ	0x02
 error_underflow:	equ	0x03
 error_delimeter:	equ	0x04
-error_max:		equ	0x05
+error_no_dev:		equ	0x05
+error_max:		equ	0x06
 
 error_str_div0:		defm	"Division by 0\0"
 error_str_overflow:	defm	"Overflow\0"
 error_str_underflow:	defm	"Underflow\0"
 error_str_delimeter:	defm	"Unmatched delimeter\0"
+error_str_no_dev:	defm	"No such device\0"
 
 error_str_unknown:	defm	"Unknown error\0"
 
@@ -22,6 +24,7 @@ error_str_table:	defw	error_str_unknown
 			defw	error_str_overflow
 			defw	error_str_underflow
 			defw	error_str_delimeter
+			defw	error_str_no_dev
 
 ; Name: error_str
 ; Desc:	Return natural language error message

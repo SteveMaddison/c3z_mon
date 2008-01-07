@@ -16,6 +16,8 @@ version:		defm	"0.0.1\0"
 include		"uart.s"
 include		"ide.s"
 ; Include utility functions...
+include		"device.s"
+include		"fs.s"
 include		"memory.s"
 include		"int.s"
 include		"float.s"
@@ -25,6 +27,7 @@ include		"print.s"
 include		"crash.s"
 include		"error.s"
 include		"string.s"
+include		"ll.s"
 
 ; Labels to console device functions (in this case the UART)
 console_outb:	equ	uart_tx
@@ -32,6 +35,9 @@ console_outs:	equ	uart_tx_str
 console_inb:	equ	uart_rx
 
 start:		
+		call	mem_init
+		call	dev_init
+
 		call	uart_init
 
 		; output banner to console
@@ -45,13 +51,15 @@ start:
 		call	console_outb
 		call	console_outb
 
-		;call	ide_init
-		call	mem_init
+		call	ide_init
 
 		; two newlines before command prompt
 		ld	a,'\n'
 		call	console_outb
 		call	console_outb
+
+		ld	de,ide_dev_name_master
+		call	fs_create
 
 		jp	cli_input
 
