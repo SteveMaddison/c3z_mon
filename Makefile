@@ -1,5 +1,5 @@
 TARGETS=monitor.obj
-SRCS=main.s uart.s calc.s memmap.s cli.s print.s
+SRCS=main.s uart.s calc.s memmap.s cli.s print.s memory.s crash.s float.s
 
 all:		${TARGETS}
 

@@ -31,7 +31,7 @@ cli_input_loop:
 		jp	cli_input_echo
 cli_input_not_backspace:
 ; elsif del
-		cp	0x10
+		cp	0x7f
 		jp	nz,cli_input_not_del
 		call	cli_check_buffer_empty
 		jp	z,cli_input_bell
@@ -118,7 +118,13 @@ cli_input_done:
 		ld	(de),a
 		ld	a,'\n'			; echo newline
 		call	console_outb
+
 		; process command
+		ld	hl,cli_buffer
+		call	console_outs
+		ld	a,'\n'
+		call	console_outb
+
 		jp	cli_input
 
 ; Returns with zero flag set if buffer is empty
