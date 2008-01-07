@@ -4,6 +4,10 @@
 ; Steve Maddison, 24/02/2007
 ;
 
+
+print_float:
+		ret
+
 print_hex_16:
 		push	af
 		ld	a,h
@@ -43,7 +47,7 @@ print_int_16:	push	af
 		; print a "-" and get the absolute value of HL
 		ld	a,'-'
 		call	console_outb
-		call	calc_2s_comp_16
+		call	int_2s_comp_16
 print_int_16_positive:
 		; Test for special case of HL = 0
 		ld	a,h
@@ -61,8 +65,9 @@ print_int_16_non_zero:
 print_int_16_div_loop:
 		; Keep dividing by 10 until there's nothing left, pushing
 		; the character representing the remainder to the stack
-		; each iteration.
-		call	calc_int_div_16
+		; each iteration. Yes, pushing F to the stack is wasteful
+		; but it saves a lot of work here.
+		call	int_div_16
 		ld	a,l
 		add	a,'0'
 		push	af

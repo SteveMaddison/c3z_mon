@@ -16,11 +16,12 @@ version:		defm	"0.0.1\0"
 include		"uart.s"
 ; Include utility functions...
 include		"memory.s"
+include		"int.s"
 include		"float.s"
-include		"calc.s"
 include		"cli.s"
 include		"print.s"
 include		"crash.s"
+include		"error.s"
 
 ; Labels to console device functions (in this case the UART)
 console_outb:	equ	uart_tx
@@ -28,16 +29,6 @@ console_outs:	equ	uart_tx_str
 console_inb:	equ	uart_rx
 
 start:		
-		ld	b,24
-		ld	c,0
-		ld	de,0x2020
-		exx
-		ld	b,24
-		ld	c,0
-		ld	de,0x1010
-		call	float_sub
-		halt
-
 		call	uart_init
 
 		; output banner to console
@@ -47,8 +38,6 @@ start:
 		call	console_outb
 		ld	hl,version
 		call	console_outs
-		ld	a,'\n'
-		call	console_outb
 
 		call	mem_init
 
