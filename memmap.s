@@ -13,6 +13,10 @@ stack_top:		equ	ram_end - 1
 cli_buffer:		equ	ram_start
 cli_buffer_size:	equ	128
 cli_buffer_end:		equ	cli_buffer + cli_buffer_size - 1
+cli_retval:		equ	cli_buffer_end + 1
+
+ide_internal_buffer:	equ	cli_retval + 1
+ide_config:		equ	ide_internal_buffer + 512
 
 env_data_start:		equ	cli_buffer_end + 1
 env_data_size:		equ	512

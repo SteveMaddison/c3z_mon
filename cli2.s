@@ -4,8 +4,7 @@
 ; Steve Maddison, 15/02/2007
 ;
 
-cli_prompt:		defm	"> \0"
-cli_unknown_cmd:	defm	"Unknown command\n\0"
+cli_prompt:	defm	"> \0"
 
 cli_input:	ld	hl,cli_prompt		; output prompt
 		call	console_outs
@@ -138,75 +137,63 @@ cli_parse_loop:
 		pop	bc
 		pop	hl
 		jp	nc,cli_parse_check_char
+		ld	a,(de)
+		cp	0
+		jp	z,cli_parse_end
+		push	de		; Save argument address
+		inc	b
 		jp	cli_parse_end
 cli_parse_check_char:
 		ld	a,(hl)
-
-		cp	' '
-		jp	nz,cli_parse_check_quote
-		ld	a,0xff
-		cp	c
-		jp	nz,cli_parse_skip
-		ld	a,0
-		ld	(hl),a
-		ld	a,(de)
-		cp	0
-		jp	z,cli_parse_skip
-		push	de
-		inc	b
-
 cli_parse_check_quote:
-		cp	'"'
+		cp	c		; Does this character match the
+					; quote we've already seen?
+		jp	nz,cli_parse_no_quote_match
+		dec	hl		; Check for escape
+		ld	a,(hl)
+		cp	'\\'
+		jp	z,cli_parse_no_quote_match
+		ld	(hl),0		; We're at the start of a quoted
+		push	de		; argument, so save its address.
+		inc	b
+		ld	c,0xff		; Reset the "current quote" value.
+		dec	de
+		jp	cli_parse_loop
+cli_parse_no_quote_match:
+		cp	'"'		; Found a new quote?
 		jp	z,cli_parse_quote
 		cp	'''
 		jp	z,cli_parse_quote
-		jp	cli_parse_skip
+		jp	cli_parse_not_quote
 cli_parse_quote:
-		cp	c
-		jp	z,cli_parse_quote_match
-		ld	a,0xff
-		cp	c
-		jp	z,cli_parse_new_quote
-		jp	cli_parse_skip
-cli_parse_quote_match:
-		dec	de
-		dec	hl
+		dec	de		; Point DE to the quote itself
+		dec	hl		; Check for escape
 		ld	a,(hl)
 		cp	'\\'
-		jp	z,cli_parse_shift
-		inc	de
-		push	de
-		dec	de
-		inc	b
-		ld	a,0
+		jp	z,cli_parse_loop
+		ld	a,(de)		; Quote is not escaped, so it must
+		ld	c,a		; mark the end of an argument.
+		xor	a
 		ld	(de),a
-		ld	c,0xff
-		jp	cli_parse_skip
-		; shift chars left until 0
-cli_parse_shift:
-		push	de
-		push	hl
-cli_parse_shift_loop:
-		ld	a,(de)
-		ld	(hl),a
-		cp	0
-		jp	z,cli_parse_shift_end
-		inc	de
-		inc	hl
-		jp	cli_parse_shift_loop
-cli_parse_shift_end:
-		pop	hl
-		pop	de
-		jp	cli_parse_skip
-cli_parse_new_quote:
-		ld	a,(hl)
-		ld	c,a
-		ld	a,0
-		ld	(hl),a
+		jp	cli_parse_loop
+cli_parse_not_quote:
+		cp	' '		; Is character a space?
+		jp	nz,cli_parse_skip
+		ld	a,c		; Are we in the middle of a quoted argument?
+		cp	0xff
+		jp	nz,cli_parse_skip
+		ld	(hl),0		; Terminate argument here
+		ld	a,(de)		; Was pervious char also a space? If so,
+		cp	0		; we've already saved this argument's address.
+		jp	z,cli_parse_skip
+		push	de		; DE now points to first non-space
+					; char after one or more spaces.
+		inc	b
 cli_parse_skip:
 		dec	hl		; Rinse and repeat
 		dec	de
 		jp	cli_parse_loop
+
 cli_parse_end:
 		ld	a,c		; Were we still looking for a quote?
 		cp	0xff
@@ -215,46 +202,18 @@ cli_parse_end:
 		call	console_outs
 		ld	a,'\n'
 		call	console_outb
-cli_parse_clear_params:
-		pop	hl		; Remove any addresses from stack
-		ld	a,h
-		or	l
-		jp	nz,cli_parse_clear_params
+		pop	hl		; remove end marker from stack
 		jp	cli_input
 cli_parse_ok:
-		ld	hl,cli_buffer
-		ld	a,(hl)
-		cp	0
-		jp	z,cli_exec
-		push	de
-		inc	b
-cli_exec:
 		pop	hl
 		ld	a,h
 		or	l
-		jp	z,cli_exec_end
-
-		ld	a,0xff
-
-		ld	de,builtin_cmd_echo
-		call	strcmp
-		jp	nz,cli_exec_echo_end
-		call	builtin_echo
-		jp	cli_exec_done
-cli_exec_echo_end:
-		ld	de,builtin_cmd_ver
-		call	strcmp
-		jp	nz,cli_exec_ver_end
-		call	builtin_ver
-		jp	cli_exec_done
-cli_exec_ver_end:
-
-cli_exec_done:
-		cp	0
-		jp	z,cli_exec_end
-		ld	hl,cli_unknown_cmd
+		jp	z,cli_parse_done
 		call	console_outs
-cli_exec_end:
+		ld	a,'\n'
+		call	console_outb
+		jp	cli_parse_ok
+cli_parse_done:
 		jp	cli_input
 
 ; Returns with zero flag set if buffer is empty

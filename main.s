@@ -6,7 +6,7 @@
 
 init:		org	0			; program starts at 0x0000
 		di				; turn off interrupts
-		ld	sp,0xfffe
+		ld	sp,0x0000		; first push will make this 0xfffe
 		jp	start
 
 title:			defm	"Cosam 3Z Monitor\0"
@@ -14,14 +14,17 @@ version:		defm	"0.0.1\0"
 
 ; Include the various drivers...
 include		"uart.s"
+include		"ide.s"
 ; Include utility functions...
 include		"memory.s"
 include		"int.s"
 include		"float.s"
 include		"cli.s"
+include		"builtin.s"
 include		"print.s"
 include		"crash.s"
 include		"error.s"
+include		"string.s"
 
 ; Labels to console device functions (in this case the UART)
 console_outb:	equ	uart_tx
@@ -38,7 +41,11 @@ start:
 		call	console_outb
 		ld	hl,version
 		call	console_outs
+		ld	a,'\n'
+		call	console_outb
+		call	console_outb
 
+		;call	ide_init
 		call	mem_init
 
 		; two newlines before command prompt

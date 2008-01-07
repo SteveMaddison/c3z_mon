@@ -1,12 +1,12 @@
-TARGETS=monitor.obj
-SRCS=main.s cli.s crash.s error.s float.s int.s memmap.s memory.s print.s uart.s
+TARGETS=monitor.bin
+SRCS=main.s builtin.s cli.s crash.s error.s float.s ide.s int.s memmap.s memory.s print.s string.s uart.s
 
 all:		${TARGETS}
 
 clean:
 		rm -f ${TARGETS}
 
-monitor.obj:	$(SRCS)
+monitor.bin:	$(SRCS)
 		z80asm -o $@ $<
 		@ls -l $@ | awk '{print $$8 ": " $$5 " bytes"}'
 

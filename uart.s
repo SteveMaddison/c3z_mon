@@ -16,13 +16,16 @@ uart_init:	push	af
 		ld	a,0x00		; disable all interrupts
 		;ld	a,0x05		; enable all RX interrupts
 		out	(uart_ier),a
-		ld	a,0x0f		; enable and reset all FIFOs
-		out	(uart_fcr),a
+		;ld	a,0x0f		; enable and reset all FIFOs
+		;out	(uart_fcr),a
 		ld	a,0x80		; Set DLAB
 		out	(uart_lcr),a
+		;ld	a,96		; Divisor of 96 = 1200 bps with 1.8432 MHz clock
+		;ld	a,48		; Divisor of 48 = 2400 bps with 1.8432 MHz clock
+		;ld	a,24		; Divisor of 24 = 4800 bps with 1.8432 MHz clock
 		ld	a,12		; Divisor of 12 = 9600 bps with 1.8432 MHz clock
 		out	(uart_dll),a
-		ld	a,0		; MSB is zero
+		ld	a,00
 		out	(uart_dlm),a
 		ld	a,0x03		; 8 bits, 1 stop, no parity (and clear DLAB)
 		out	(uart_lcr),a	; write new value back
@@ -37,39 +40,50 @@ uart_rx:	call	uart_rx_ready
 
 ; uart_rx_ready
 ; Returns when UART has received data
-uart_rx_ready:	push	af
+uart_rx_ready:
+		push	af
+uart_rx_ready_loop:
 		in	a,(uart_lsr)	; fetch the conrtol register
 		bit	0,a		; bit will be set if UART has data
-		jp	z,uart_rx_ready
+		jp	z,uart_rx_ready_loop
 		pop	af
 		ret
 
 ; uart_tx
 ; Sends byte in A to the UART
 uart_tx:	call	uart_tx_ready
+		cp	'\n'			; Newlines are replaced with
+		jp	nz,uart_tx_send		; carriage returns so things
+		ld	a,'\r'			; are displayed right on the
+uart_tx_send:					; terminal emulator.
 		out	(uart_rbr),a
+uart_tx_end:
 		ret
 
 ; uart_tx_str
 ; Sends null-terminated string starting at HL to UART
 ; XXX - can maybe optimised using CPI instruction?
-uart_tx_str:		push	af
-uart_tx_str_loop:	ld	a,(hl)
-			cp	0
-			jp	z,uart_tx_str_end
-			call	uart_tx_ready
-			out	(uart_rbr),a
-			inc	hl
-			jp	uart_tx_str_loop
-uart_tx_str_end:	pop	af
-			ret
+uart_tx_str:	
+		push	af
+uart_tx_str_loop:
+		ld	a,(hl)
+		cp	0
+		jp	z,uart_tx_str_end
+		call	uart_tx
+		inc	hl
+		jp	uart_tx_str_loop
+uart_tx_str_end:
+		pop	af
+		ret
 
 ; uart_tx_ready
 ; Returns when UART is ready to receive
-uart_tx_ready:	push	af
+uart_tx_ready:
+		push	af
+uart_tx_ready_loop:
 		in	a,(uart_lsr)	; fetch the control register
 		bit	5,a		; bit will be set if UART is ready
-		jp	z,uart_tx_ready
+		jp	z,uart_tx_ready_loop
 		pop	af
 		ret
 
