@@ -32,8 +32,14 @@ ip_addr:		equ	slip_buffer_end + 1
 ip_addr_length:		equ	4
 ip_addr_end:		equ	ip_addr + ip_addr_length - 1
 ip_hdr_scratch:		equ	ip_addr_end + 1
-ip_hdr_scratch_length:	equ	ip_ihl_min << 4
+ip_hdr_scratch_length:	equ	ip_ihl_max << 4
 ip_hdr_scratch_end:	equ	ip_hdr_scratch + ip_hdr_scratch_length - 1
+
+icmp_scratch:		equ	ip_hdr_scratch_end + 1
+; ICMP message is 8 bytes, plus original IP header, plus 64-bits of data.
+; Echo messages are allowed to be longer but we just won't send longer.
+icmp_scratch_length:	equ	ip_hdr_scratch_length + 16
+icmp_scratch_end:	equ	icmp_scratch + icmp_scratch - 1
 
 ;env_data_start:		equ	cli_buffer_end + 1
 ;env_data_size:		equ	512

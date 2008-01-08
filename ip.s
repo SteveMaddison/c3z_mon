@@ -38,10 +38,20 @@ ip_tos_default:		equ	0
 ip_flags_default:	equ	0x00
 ip_ttl_default:		equ	0xff		; High for now, can be decreased.
 ip_ihl_min:		equ	5		; In 32-bit words
+ip_ihl_max:		equ	6		; In 32-bit words
 ip_addr_default:	defb	1,0,0,10	; 10.0.0.1
 ip_net_loopback:	equ	127		; 127(.0.0.0/8)
 ip_addr_loopback:	defb	1,0,0,ip_net_loopback		; (127).0.0.1
 
+
+; Name: ip_calc_checksum
+; Desc: Calculate the checksum for IP header
+; In:	IX = start of data
+;	HL = length of data
+; Out:	HL = calculated checksum
+ip_calc_checksum:
+	; XXX - Checksum stuff here
+	ret
 
 ; Name: ip_init
 ; Desc: Initialise the IP interface
@@ -142,14 +152,6 @@ ip_tx_slip:
 	call	slip_tx_data
 	call	slip_datagram_tx_terminate
 ip_tx_end:
-	ret
-
-; Name: ip_calc_checksum
-; Desc: Calculate the checksum for IP header
-; In:	IX = start of IP header
-; Out:	HL = calculated checksum
-ip_calc_checksum:
-	; XXX - Checksum stuff here
 	ret
 
 ; Name: ip_rx
