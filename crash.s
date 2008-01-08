@@ -43,7 +43,9 @@ crash:
 		ld	a,'\n'
 		call	console_outb
 crash_stack_dump:
-		ld	bc,stack_top+2
+		ld	bc,stack_top
+		inc	bc
+		inc	bc
 crash_stack_dump_loop:
 		call	print_hex_16
 		ld	a,':'
