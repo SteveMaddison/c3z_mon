@@ -17,6 +17,7 @@ include		"uart.s"
 include		"ide.s"
 include		"slip.s"
 include		"ip.s"
+include		"icmp.s"
 ; Include utility functions...
 include		"device.s"
 include		"fs.s"

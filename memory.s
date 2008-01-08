@@ -21,3 +21,22 @@ mem_heap_alloc:
 		pop	hl
 		ret
 
+; Name:	memcmp
+; Desc:	Compare first n bytes of buffers
+; In:	HL, DE = addresses of buffers to compare
+;	BC = number of bytes to check (n)
+; Out:	Zero flag set if buffers match
+memcmp:
+	ld	a,b			; check if counter is 0
+	or	c
+	jp	z,memcmp_end
+	ld	a,(de)			; compare bytes
+	cp	(hl)
+	jp	nz,memcmp_end
+	inc	de
+	inc	hl
+	dec	bc
+	jp	memcmp
+memcmp_end:
+	ret
+

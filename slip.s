@@ -13,7 +13,7 @@ slip_char_esc:		equ	0xdb	; 0333
 slip_char_esc_end:	equ	0xdc	; 0334
 slip_char_esc_esc:	equ	0xdd	; 0335
 
-slip_dev_name:		defm	"slip0\0"
+slip_dev_name:		defm	"sl0\0"
 
 slip_driver:		defw	slip_datagram_rx
 			defw	slip_datagram_tx
