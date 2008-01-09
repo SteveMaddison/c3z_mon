@@ -31,7 +31,9 @@ slip_buffer_end:	equ	slip_internal_buffer + slip_buffer_size - 1
 ip_addr:		equ	slip_buffer_end + 1
 ip_addr_length:		equ	4
 ip_addr_end:		equ	ip_addr + ip_addr_length - 1
-ip_hdr_scratch:		equ	ip_addr_end + 1
+ip_broadcast:		equ	ip_addr_end + 1
+ip_broadcast_end:	equ	ip_broadcast + ip_addr_length - 1
+ip_hdr_scratch:		equ	ip_broadcast_end + 1
 ip_hdr_scratch_length:	equ	ip_ihl_max << 4
 ip_hdr_scratch_end:	equ	ip_hdr_scratch + ip_hdr_scratch_length - 1
 

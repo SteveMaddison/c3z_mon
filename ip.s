@@ -8,6 +8,7 @@
 ; for fields that share bytes with others.
 ip_hdr_version:		equ	0
 ip_hdr_version_mask:	equ	0xf0
+ip_hdr_version_shift:	equ	4
 ip_hdr_ihl:		equ	0
 ip_hdr_ihl_mask:	equ	0x0f
 ip_hdr_tos:		equ	1
@@ -40,6 +41,7 @@ ip_ttl_default:		equ	0xff		; High for now, can be decreased.
 ip_ihl_min:		equ	5		; In 32-bit words
 ip_ihl_max:		equ	6		; In 32-bit words
 ip_addr_default:	defb	1,0,0,10	; 10.0.0.1
+ip_broadcast_default:	defb	255,255,255,10	; 10.255.255.255
 ip_net_loopback:	equ	127		; 127(.0.0.0/8)
 ip_addr_loopback:	defb	1,0,0,ip_net_loopback		; (127).0.0.1
 
@@ -47,16 +49,155 @@ ip_addr_loopback:	defb	1,0,0,ip_net_loopback		; (127).0.0.1
 ; Name: ip_calc_checksum
 ; Desc: Calculate the checksum for IP header
 ; In:	IX = start of data
-;	HL = length of data
+;	BC = length of data
 ; Out:	HL = calculated checksum
 ip_calc_checksum:
 	; XXX - Checksum stuff here
 	ret
 
+; Name: ip_check_dest
+; Desc: Check if a packet is for this host
+; In:	IX = address of IP header
+; Out:	ZF = set if for this host, otherwise cleared
+ip_check_dest:
+	push	bc			; save
+	push	de
+	push	hl
+	ld	bc,ip_addr_length	; for memcmp
+	; Get destination address
+	push	ix
+	pop	hl
+	ld	de,ip_hdr_dest_addr
+	add	hl,de
+	push	hl			; save destination address
+	; Check IP address
+	ld	de,ip_addr
+	call	memcmp
+	pop	hl			; restore destination address
+	jp	z,ip_check_dest_end
+	; Check broadcast address
+	ld	de,ip_broadcast
+	call	memcmp
+ip_check_dest_end:	
+	pop	hl			; restore
+	pop	de
+	pop	bc
+	ret
+
 ; Name: ip_init
 ; Desc: Initialise the IP interface
 ip_init:
+	ld	hl,ip_addr_default
 	call	ip_set_addr
+	ld	hl,ip_broadcast_default
+	call	ip_set_broadcast
+	ret
+
+; Name: ip_rx
+; Desc: Process IP datagram received from a remote host
+; In:	HL = Data buffer
+ip_rx:
+	; Set IX = IP header address
+	push	hl
+	pop	ix
+	; Check TTL
+	ld	a,(ix+ip_hdr_ttl)
+	cp	0
+	jp	z,ip_rx_discard
+	; Check IHL is valid
+	ld	a,(ix+ip_hdr_ihl)
+	and	ip_hdr_ihl_mask
+	cp	ip_ihl_min
+	jp	c,ip_rx_discard
+	; Check version
+	ld	a,(ix+ip_version)
+	and	ip_hdr_version_mask
+	cp	ip_version << ip_hdr_version_shift
+	jp	nz,ip_rx_discard
+	; Convert IHL from words to bytes (*4)
+	rla
+	rla
+	; Save 16-bit result in BC
+	ld	b,0
+	ld	c,a
+	; Check checksum
+	call	ip_calc_checksum
+	ld	a,(ix+ip_hdr_checksum)
+	cp	h
+	jp	nz,ip_rx_discard
+	ld	a,(ix+ip_hdr_checksum+1)
+	cp	l
+	jp	nz,ip_rx_discard
+	; Check if packet if for this host
+	call	ip_check_dest
+	jp	nz,ip_rx_discard
+	; Set HL = total length of IP datagram (reversed due to
+	; network byte order)
+	ld	h,(ix+ip_hdr_length+1)
+	ld	l,(ix+ip_hdr_length+0)
+	; Subtract from total length => payload length => DE
+	and	a	; clear CF
+	sbc	hl,bc
+	push	hl
+	pop	de
+	; Add to buffer address => start of payload
+	push	ix
+	pop	hl
+	add	hl,bc
+	; Process the payload
+	call	ip_rx_data
+ip_rx_discard:
+	ret
+
+; Name: ip_rx_data
+; Desc: Process payload of IP datagram after header has been checked
+; In:	HL = Address of data buffer
+;	DE = Data length
+;	IX = Address op IP header
+ip_rx_data:
+	; Demuliplex according to protocol number. All protocol handlers
+	; expect the same parameters in the same registers as this routine.
+	ld	a,(ix+ip_hdr_protocol)
+ip_rx_data_icmp:
+	cp	ip_proto_icmp
+	jp	nz,ip_rx_data_udp
+	call	icmp_rx
+	jp	ip_rx_data_end
+ip_rx_data_udp:
+	cp	ip_proto_udp
+	jp	nz,ip_rx_data_tcp
+;	call	udp_rx
+	jp	ip_rx_data_end
+ip_rx_data_tcp:
+	cp	ip_proto_tcp
+	jp	nz,ip_rx_data_end
+;	call	tcp_rx
+	jp	ip_rx_data_end
+ip_rx_data_end:
+	ret
+
+; Name: ip_set_addr
+; Desc: Set IP address
+; In:   HL = address of address in network byte order
+ip_set_addr:
+	ld	ix,ip_addr
+	ld	(ix+0),h
+	ld	(ix+1),l
+	inc	hl
+	ld	(ix+2),h
+	ld	(ix+3),l
+	ret
+
+; Name: ip_set_broadcast
+; Desc: Set IP broadcast address
+; In:   HL = address of address in network byte order
+ip_set_broadcast:
+	ld	ix,ip_broadcast
+	ld	(ix+0),h
+	ld	(ix+1),l
+	inc	hl
+	ld	(ix+2),h
+	ld	(ix+3),l
 	ret
 
 ; Name: ip_tx
@@ -153,87 +294,3 @@ ip_tx_slip:
 	call	slip_datagram_tx_terminate
 ip_tx_end:
 	ret
-
-; Name: ip_rx
-; Desc: Process received IP datagram from a remote host
-; In:	HL = Data buffer
-;	DE = Data length
-ip_rx:
-	call	ip_calc_checksum
-	; XXX - Checksum stuff here
-	; Check destination
-	push	hl
-	push	de
-	ld	hl,ip_addr
-	ld	de,(ix+ip_hdr_dest_addr)
-	ld	bc,4
-	call	memcmp
-	pop	de
-	pop	hl
-	jp	nz,ip_rx_discard
-	; Set IX = IP header
-	push	hl
-	pop	ix
-	; Set A = length of header in bytes (IHL * 4)
-	ld	a,(ix+ip_hdr_ihl)
-	and	ip_hdr_ihl_mask
-	rla
-	rla
-	; Save 16-bit result in BC
-	ld	b,0
-	ld	c,a
-	; Subtract from total length => payload length => DE
-	and	a
-	sbc	hl,bc
-	push	hl
-	pop	de
-	; Add to buffer address => start of payload
-	push	ix
-	pop	hl
-	ld	b,0
-	ld	c,a
-	add	hl,bc
-	; Process the payload
-	call	ip_rx_data
-ip_rx_discard:
-	ret
-
-; Name: ip_rx_data
-; Desc: Process payload of IP datagram after header has been checked
-; In:	HL = Address of data buffer
-;	DE = Data length
-;	IX = Address op IP header
-ip_rx_data:
-	; Demuliplex according to protocol number. All protocol handlers
-	; expect the same parameters in the same registers as this routine.
-	ld	a,(ix+ip_hdr_protocol)
-ip_rx_data_icmp:
-	cp	ip_proto_icmp
-	jp	nz,ip_rx_data_udp
-	call	icmp_rx
-	jp	ip_rx_data_end
-ip_rx_data_udp:
-	cp	ip_proto_udp
-	jp	nz,ip_rx_data_tcp
-;	call	udp_rx
-	jp	ip_rx_data_end
-ip_rx_data_tcp:
-	cp	ip_proto_tcp
-	jp	nz,ip_rx_data_end
-;	call	tcp_rx
-	jp	ip_rx_data_end
-ip_rx_data_end:
-	ret
-
-; Name: ip_set_addr
-; Desc: Set IP address
-; In:   HL = address of address in network byte order
-ip_set_addr:
-	ld	ix,ip_addr
-	ld	(ix+0),h
-	ld	(ix+1),l
-	inc	hl
-	ld	(ix+2),h
-	ld	(ix+3),l
-	ret
-
