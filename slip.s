@@ -26,9 +26,9 @@ slip_check_datagram_size:
 		push	hl		; save
 		push	bc		; save
 		push	de
-		pop	hl
+		pop	bc
 		and	a		; clear CF (but keep A)
-		ld	bc,slip_buffer_size
+		ld	hl,slip_buffer_size
 		sbc	hl,bc
 		pop	bc		; restore
 		pop	hl		; restore

@@ -54,7 +54,7 @@ icmp_type_info_request:			equ	15
 icmp_type_info_reply:			equ	16
 
 ; Data to send with echo messages
-icmp_echo_data:			defm	"ABCDEFGH"
+icmp_echo_data:			defm	"abcdefgh"
 icmp_echo_data_length:		equ	8
 
 
@@ -106,19 +106,28 @@ icmp_tx_echo:
 	ld	(ix+icmp_hdr_code),0
 	ld	(ix+icmp_hdr_checksum+0),0
 	ld	(ix+icmp_hdr_checksum+1),0
+	ld	(ix+icmp_hdr_ident+0),0
+	ld	(ix+icmp_hdr_ident+1),0
+	ld	(ix+icmp_hdr_seq_number+0),0
+	ld	(ix+icmp_hdr_seq_number+1),0
 	push	bc
 	push	de
-	ld	de,icmp_scratch+icmp_hdr_data
+	ld	hl,icmp_scratch
+	ld	bc,icmp_hdr_data
+	add	hl,bc
+	push	hl
+	pop	de
 	ld	hl,icmp_echo_data
 	ld	bc,icmp_echo_data_length
 	ldir
 	pop	de
 	pop	bc
 	ld	hl,icmp_hdr_data+icmp_echo_data_length
-	call	ip_calc_checksum
+	;call	ip_calc_checksum
 	push	hl
 	pop	iy
 	ld	hl,icmp_scratch
 	ld	a,ip_proto_icmp
 	call	ip_tx
 	ret
+

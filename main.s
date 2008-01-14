@@ -37,6 +37,13 @@ console_outb:	equ	uart_tx
 console_outs:	equ	uart_tx_str
 console_inb:	equ	uart_rx
 
+;null_func:	ret
+
+;console_outb:	equ	null_func
+;console_outs:	equ	null_func
+;console_inb:	equ	null_func
+
+
 start:		
 		call	mem_init
 		call	dev_init
@@ -44,28 +51,45 @@ start:
 		call	uart_init
 
 		; output banner to console
-		ld	hl,title
-		call	console_outs
-		ld	a,' '
-		call	console_outb
-		ld	hl,version
-		call	console_outs
-		ld	a,'\n'
-		call	console_outb
-		call	console_outb
+;		ld	hl,title
+;		call	console_outs
+;		ld	a,' '
+;		call	console_outb
+;		ld	hl,version
+;		call	console_outs
+;		ld	a,'\n'
+;		call	console_outb
+;		call	console_outb
 
 		;call	ide_init
 		call	ip_init
 
+;		ld	a,0xc0
+;		call	uart_tx
+
+		ld	a,8
+		ld	bc,0x0a00
+		ld	de,0x0002
+		call	icmp_tx_echo
+
+;		ld	a,0x99
+;loop_99:
+;		ld	b,16
+;		call	uart_tx
+;		djnz	loop_99
+
+bla:
+		jp	bla
+
 		; two newlines before command prompt
-		ld	a,'\n'
-		call	console_outb
-		call	console_outb
+		;ld	a,'\n'
+		;call	console_outb
+		;call	console_outb
 
 		;ld	de,ide_dev_name_master
 		;call	fs_create
 
-		jp	cli_input
+		;jp	cli_input
 
 ; Include memory location data...
 include		"memmap.s"

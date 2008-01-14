@@ -40,10 +40,10 @@ ip_flags_default:	equ	0x00
 ip_ttl_default:		equ	0xff		; High for now, can be decreased.
 ip_ihl_min:		equ	5		; In 32-bit words
 ip_ihl_max:		equ	6		; In 32-bit words
-ip_addr_default:	defb	1,0,0,10	; 10.0.0.1
-ip_broadcast_default:	defb	255,255,255,10	; 10.255.255.255
-ip_net_loopback:	equ	127		; 127(.0.0.0/8)
-ip_addr_loopback:	defb	1,0,0,ip_net_loopback		; (127).0.0.1
+ip_addr_default:	defb	10,0,0,1	; 10.0.0.1
+ip_broadcast_default:	defb	10,255,255,255	; 10.255.255.255
+ip_net_loopback:				; 127(.0.0.0/8)
+ip_addr_loopback:	defb	127,0,0,1	; (127).0.0.1
 
 
 ; Name: ip_calc_checksum
@@ -52,7 +52,31 @@ ip_addr_loopback:	defb	1,0,0,ip_net_loopback		; (127).0.0.1
 ;	BC = length of data
 ; Out:	HL = calculated checksum
 ip_calc_checksum:
-	; XXX - Checksum stuff here
+	push	ix	; save
+	push	de	; save
+	and	a	; clear CF
+ip_calc_checksum_loop:
+	ld	a,b
+	or	c
+	jp	z,ip_calc_checksum_end
+	ld	d,(ix+0)
+	ld	e,(ix+1)
+	adc	hl,de
+	inc	ix
+	inc	hl
+	dec	bc
+	dec	bc
+	jp	ip_calc_checksum_loop
+ip_calc_checksum_end:
+	; Invert HL (1's complement)
+	ld	a,h
+	cpl
+	ld	h,a
+	ld	a,l
+	cpl
+	ld	l,a
+	pop	de	; restore
+	pop	ix	; restore
 	ret
 
 ; Name: ip_check_dest
@@ -131,10 +155,9 @@ ip_rx:
 	; Check if packet if for this host
 	call	ip_check_dest
 	jp	nz,ip_rx_discard
-	; Set HL = total length of IP datagram (reversed due to
-	; network byte order)
-	ld	h,(ix+ip_hdr_length+1)
-	ld	l,(ix+ip_hdr_length+0)
+	; Set HL = total length of IP datagram
+	ld	h,(ix+ip_hdr_length+0)
+	ld	l,(ix+ip_hdr_length+1)
 	; Subtract from total length => payload length => DE
 	and	a	; clear CF
 	sbc	hl,bc
@@ -180,12 +203,9 @@ ip_rx_data_end:
 ; Desc: Set IP address
 ; In:   HL = address of address in network byte order
 ip_set_addr:
-	ld	ix,ip_addr
-	ld	(ix+0),h
-	ld	(ix+1),l
-	inc	hl
-	ld	(ix+2),h
-	ld	(ix+3),l
+	ld	de,ip_addr
+	ld	bc,ip_addr_length
+	ldir
 	ret
 
 ; Name: ip_set_broadcast
@@ -215,16 +235,16 @@ ip_tx:
 	push	af		; save protocol number
 	ld	ix,ip_hdr_scratch
 	ld	a,ip_version << 4
-	and	ip_ihl_min
+	or	ip_ihl_min
 	ld	(ix+ip_hdr_version),a
 	ld	(ix+ip_hdr_tos),ip_tos_default
 	; Calculate total length
 	push	iy		; save data length to HL
 	pop	hl
-	ld	b,ip_ihl_min*4	; calculate header length in bytes
+	ld	bc,ip_ihl_min*4	; calculate header length in bytes
 	add	hl,bc		; add to data length
-	ld	(ix+ip_hdr_length),l
-	ld	(ix+ip_hdr_length+1),h
+	ld	(ix+ip_hdr_length+0),h
+	ld	(ix+ip_hdr_length+1),l
 	; Check length with SLIP driver, as won't be sending the
 	; whole datagram in one go.
 	push	hl
@@ -249,12 +269,15 @@ ip_tx_size_ok:
 	pop	af		; restore protocol number
 	ld	(ix+ip_hdr_protocol),a
 	; Source address
+	push	ix
+	pop	hl
+	ld	bc,ip_hdr_src_addr
+	add	hl,bc
+	push	hl
+	pop	de
 	ld	hl,ip_addr	; already in network byte order
-	ld	(ix+ip_hdr_src_addr+0),h
-	ld	(ix+ip_hdr_src_addr+1),l
-	inc	hl
-	ld	(ix+ip_hdr_src_addr+2),h
-	ld	(ix+ip_hdr_src_addr+3),l
+	ld	bc,ip_addr_length
+	ldir
 	; Destination address
 	pop	hl		; restore destination address
 	ld	(ix+ip_hdr_dest_addr+0),h
@@ -263,7 +286,7 @@ ip_tx_size_ok:
 	ld	(ix+ip_hdr_dest_addr+2),h
 	ld	(ix+ip_hdr_dest_addr+3),l
 	; Headed for loopback address?
-	ld	a,(ix+ip_hdr_dest_addr+3)
+	ld	a,(ix+ip_hdr_dest_addr)
 	cp	ip_net_loopback
 	jp	nz,ip_tx_slip
 	; Set source to loopback too
@@ -294,3 +317,4 @@ ip_tx_slip:
 	call	slip_datagram_tx_terminate
 ip_tx_end:
 	ret
+

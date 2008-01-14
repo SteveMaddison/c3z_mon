@@ -62,9 +62,9 @@ uart_rx_ready_loop:
 ; uart_tx
 ; Sends byte in A to the UART
 uart_tx:	call	uart_tx_ready
-		cp	'\n'			; Newlines are replaced with
-		jp	nz,uart_tx_send		; carriage returns so things
-		ld	a,'\r'			; are displayed right on the
+;		cp	'\n'			; Newlines are replaced with
+;		jp	nz,uart_tx_send		; carriage returns so things
+;		ld	a,'\r'			; are displayed right on the
 uart_tx_send:					; terminal emulator.
 		out	(uart_rbr),a
 uart_tx_end:
