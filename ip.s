@@ -68,6 +68,7 @@ ip_calc_checksum_loop:
 	jp	nz,ip_calc_checksum_even
 	ld	e,0
 	inc	bc	; will be dec-ed twice later, becoming 0
+	jp	ip_calc_checksum_add
 ip_calc_checksum_even:
 	ld	e,(ix+1)
 ip_calc_checksum_add:
@@ -279,6 +280,9 @@ ip_tx_size_ok:
 	ld	(ix+ip_hdr_ttl),ip_ttl_default
 	pop	af		; restore protocol number
 	ld	(ix+ip_hdr_protocol),a
+	; Initialise checksum (should be 0 for calculation)
+	ld	(ix+ip_hdr_checksum+0),0
+	ld	(ix+ip_hdr_checksum+1),0
 	; Source address
 	push	ix
 	pop	hl

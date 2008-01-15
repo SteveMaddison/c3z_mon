@@ -122,9 +122,9 @@ icmp_tx_echo:
 	ldir
 	ld	bc,icmp_hdr_data+icmp_echo_data_length
 	ld	hl,0
-;	call	ip_calc_checksum
-;	ld	(ix+icmp_hdr_checksum+0),h
-;	ld	(ix+icmp_hdr_checksum+1),l
+	call	ip_calc_checksum
+	ld	(ix+icmp_hdr_checksum+0),h
+	ld	(ix+icmp_hdr_checksum+1),l
 	push	bc
 	pop	iy
 	pop	de
