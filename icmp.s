@@ -121,11 +121,11 @@ icmp_tx_echo:
 	ld	bc,icmp_echo_data_length
 	ldir
 	ld	bc,icmp_hdr_data+icmp_echo_data_length
+	push	bc
 	ld	hl,0
 	call	ip_calc_checksum
 	ld	(ix+icmp_hdr_checksum+0),h
 	ld	(ix+icmp_hdr_checksum+1),l
-	push	bc
 	pop	iy
 	pop	de
 	pop	bc
@@ -133,3 +133,4 @@ icmp_tx_echo:
 	ld	a,ip_proto_icmp
 	call	ip_tx
 	ret
+

@@ -54,7 +54,7 @@ ip_addr_loopback:	defb	ip_net_loopback,0,0,1	; (127).0.0.1
 ; Out:	HL = calculated checksum
 ip_calc_checksum:
 	push	ix	; save
-	push	de	; save
+	push	de
 	and	a	; clear CF
 	push	af	; will be popped/pushed during loop
 ip_calc_checksum_loop:
@@ -90,8 +90,8 @@ ip_calc_checksum_end:
 	ld	a,l
 	cpl
 	ld	l,a
-	pop	de	; restore
-	pop	ix	; restore
+	pop	de
+	pop	ix
 	ret
 
 ; Name: ip_check_dest
