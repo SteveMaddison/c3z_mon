@@ -1,7 +1,7 @@
 TARGETS=monitor.bin
 SRCS=main.s builtin.s cli.s crash.s device.s error.s float.s fs.s\
 icmp.s ide.s int.s ip.s ll.s memmap.s memory.s print.s pseudo.s slip.s\
-socket.s string.s uart.s udp.s
+socket.s string.s uart.s udp.s 
 
 all:		${TARGETS}
 

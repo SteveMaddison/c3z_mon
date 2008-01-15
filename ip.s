@@ -56,7 +56,7 @@ ip_calc_checksum:
 	push	ix	; save
 	push	de	; save
 	and	a	; clear CF
-	push	af	; will be popped/pushed during loop
+;	push	af	; will be popped/pushed during loop
 ip_calc_checksum_loop:
 	ld	a,b	; check for end condition, but also...
 	cp	0
@@ -72,16 +72,16 @@ ip_calc_checksum_even:
 	ld	e,(ix+1)
 ip_calc_checksum_add:
 	ld	d,(ix+0)
-	pop	af
-	adc	hl,de	; tally sum
-	push	af	; keep track of carry
+;	pop	af
+	add	hl,de	; tally sum
+;	push	af	; keep track of carry
 	inc	ix	; skip to next 16-bit word
 	inc	ix
 	dec	bc
 	dec	bc
 	jp	ip_calc_checksum_loop
 ip_calc_checksum_end:
-	pop	af	; put stack right
+;	pop	af	; put stack right
 	; Invert HL (1's complement)
 	ld	a,h
 	cpl
