@@ -18,8 +18,8 @@ uart_driver:	defw	uart_rx
 
 ; Initialise the UART
 uart_init:	push	af
-		ld	a,0x00		; disable all interrupts
-		;ld	a,0x05		; enable all RX interrupts
+		;ld	a,0x00		; disable all interrupts
+		ld	a,0x05		; enable all RX interrupts
 		out	(uart_ier),a
 		;ld	a,0x0f		; enable and reset all FIFOs
 		;out	(uart_fcr),a

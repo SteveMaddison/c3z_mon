@@ -34,6 +34,10 @@ slip_check_datagram_size:
 		pop	hl		; restore
 		ret
 
+; Name: slip_intr_rx
+slip_intr_rx:
+		ret
+
 ; Name: slip_datagram_rx
 ; Desc: Receive a datagram from the serial port, de-framing on the fly.
 ; In:   HL = input buffer address (or 0 for internal buffer)
@@ -156,6 +160,9 @@ slip_init:
 		ld	de,slip_driver		; Driver
 		ld	hl,slip_dev_name	; Name
 		call	dev_add
+		ld	hl,slip_internal_buffer
+		ld	(slip_buffer_ptr),hl
+		ret
 
 ; Name: slip_set_buffer
 ; Desc:	Check for magic buffer address (0)

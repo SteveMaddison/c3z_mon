@@ -27,8 +27,9 @@ slip_internal_buffer:	equ	fs_buffer_ptr + 2
 ; excluding special framing characters.
 slip_buffer_size:	equ	1006
 slip_buffer_end:	equ	slip_internal_buffer + slip_buffer_size - 1
+slip_buffer_ptr:	equ	slip_buffer_end + 1
 
-ip_addr:		equ	slip_buffer_end + 1
+ip_addr:		equ	slip_buffer_ptr + 1
 ip_addr_length:		equ	4
 ip_addr_end:		equ	ip_addr + ip_addr_length - 1
 ip_broadcast:		equ	ip_addr_end + 1

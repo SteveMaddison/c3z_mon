@@ -204,7 +204,7 @@ ip_rx_data_icmp:
 ip_rx_data_udp:
 	cp	ip_proto_udp
 	jp	nz,ip_rx_data_tcp
-;	call	udp_rx
+	call	udp_rx
 	jp	ip_rx_data_end
 ip_rx_data_tcp:
 	cp	ip_proto_tcp

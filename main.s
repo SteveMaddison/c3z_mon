@@ -9,8 +9,12 @@ init:		org	0			; program starts at 0x0000
 		ld	sp,0x0000		; first push will make this 0xfffe
 		jp	start
 
-title:			defm	"Cosam 3Z Monitor\0"
-version:		defm	"0.0.1\0"
+title:		defm	"Cosam 3Z Monitor\0"
+version:	defm	"0.0.1\0"
+
+; Pad to 0x38 for interrupt
+padding:	defm	"                          "
+include		"intr.s"
 
 ; Include the various drivers...
 include		"uart.s"
@@ -65,11 +69,12 @@ start:
 ;		call	console_outb
 
 		;call	ide_init
+		call	slip_init
 		call	ip_init
 		call	sock_init
 
-;		ld	a,0xc0
-;		call	uart_tx
+		; Not yet...
+		;call	intr_init
 
 		ld	a,8
 		ld	bc,0x0a00
