@@ -42,8 +42,8 @@ ip_ihl_min:		equ	5		; In 32-bit words
 ip_ihl_max:		equ	6		; In 32-bit words
 ip_addr_default:	defb	10,0,0,1	; 10.0.0.1
 ip_broadcast_default:	defb	10,255,255,255	; 10.255.255.255
-ip_net_loopback:				; 127(.0.0.0/8)
-ip_addr_loopback:	defb	127,0,0,1	; (127).0.0.1
+ip_net_loopback:	equ	127		; 127(.0.0.0/8)
+ip_addr_loopback:	defb	ip_net_loopback,0,0,1	; (127).0.0.1
 
 
 ; Name: ip_calc_checksum
@@ -294,12 +294,15 @@ ip_tx_size_ok:
 	cp	ip_net_loopback
 	jp	nz,ip_tx_slip
 	; Set source to loopback too
+	push	ix
+	pop	hl
+	ld	bc,ip_hdr_src_addr
+	add	hl,bc
+	push	hl
+	pop	de
 	ld	hl,ip_addr_loopback
-	ld	(ix+ip_hdr_src_addr+0),h
-	ld	(ix+ip_hdr_src_addr+1),l
-	inc	hl
-	ld	(ix+ip_hdr_src_addr+2),h
-	ld	(ix+ip_hdr_src_addr+3),l
+	ld	bc,ip_addr_length
+	ldir
 	pop	hl		; restore data pointer
 	pop	de		; restore original data length
 	call	ip_rx_data
@@ -321,4 +324,3 @@ ip_tx_slip:
 	call	slip_datagram_tx_terminate
 ip_tx_end:
 	ret
-
