@@ -17,7 +17,10 @@ include		"uart.s"
 include		"ide.s"
 include		"slip.s"
 include		"ip.s"
+include		"socket.s"
 include		"icmp.s"
+include		"pseudo.s"
+include		"udp.s"
 ; Include utility functions...
 include		"device.s"
 include		"fs.s"
@@ -63,6 +66,7 @@ start:
 
 		;call	ide_init
 		call	ip_init
+		call	sock_init
 
 ;		ld	a,0xc0
 ;		call	uart_tx

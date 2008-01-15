@@ -37,12 +37,12 @@ ip_proto_udp:		equ	17
 ip_version:		equ	4
 ip_tos_default:		equ	0
 ip_flags_default:	equ	0x00
-ip_ttl_default:		equ	0xff		; High for now, can be decreased.
-ip_ihl_min:		equ	5		; In 32-bit words
-ip_ihl_max:		equ	6		; In 32-bit words
-ip_addr_default:	defb	10,0,0,1	; 10.0.0.1
-ip_broadcast_default:	defb	10,255,255,255	; 10.255.255.255
-ip_net_loopback:	equ	127		; 127(.0.0.0/8)
+ip_ttl_default:		equ	0xff			; High for now, can be decreased.
+ip_ihl_min:		equ	5			; In 32-bit words
+ip_ihl_max:		equ	6			; In 32-bit words
+ip_addr_default:	defb	10,0,0,1		; 10.0.0.1
+ip_broadcast_default:	defb	10,255,255,255		; 10.255.255.255
+ip_net_loopback:	equ	127			; 127(.0.0.0/8)
 ip_addr_loopback:	defb	ip_net_loopback,0,0,1	; (127).0.0.1
 
 
@@ -50,6 +50,7 @@ ip_addr_loopback:	defb	ip_net_loopback,0,0,1	; (127).0.0.1
 ; Desc: Calculate the checksum for IP header
 ; In:	IX = start of data
 ;	BC = length of data
+;	HL = starting checksum value (should be 0 for new sums)
 ; Out:	HL = calculated checksum
 ip_calc_checksum:
 	push	ix	; save
@@ -57,11 +58,20 @@ ip_calc_checksum:
 	and	a	; clear CF
 	push	af	; will be popped/pushed during loop
 ip_calc_checksum_loop:
-	ld	a,b	; check for end condition
-	or	c
+	ld	a,b	; check for end condition, but also...
+	cp	0
+	jp	nz,ip_calc_checksum_even
+	ld	a,c
+	cp	0
 	jp	z,ip_calc_checksum_end
-	ld	d,(ix+0)
+	cp	1	; ... if there's just one byte left
+	jp	nz,ip_calc_checksum_even
+	ld	e,0
+	inc	bc	; will be dec-ed twice later, becoming 0
+ip_calc_checksum_even:
 	ld	e,(ix+1)
+ip_calc_checksum_add:
+	ld	d,(ix+0)
 	pop	af
 	adc	hl,de	; tally sum
 	push	af	; keep track of carry
@@ -149,6 +159,7 @@ ip_rx:
 	ld	b,0
 	ld	c,a
 	; Check checksum
+	ld	hl,0
 	call	ip_calc_checksum
 	ld	a,(ix+ip_hdr_checksum)
 	cp	h
@@ -309,6 +320,7 @@ ip_tx_size_ok:
 	jp	ip_tx_end
 ip_tx_slip:
 	; Checksum - sneakily skipped for loopback packets (shhh!)
+	ld	hl,0
 	call	ip_calc_checksum
 	ld      (ix+ip_hdr_checksum+0),h
 	ld      (ix+ip_hdr_checksum+1),l

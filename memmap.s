@@ -41,7 +41,17 @@ icmp_scratch:		equ	ip_hdr_scratch_end + 1
 ; ICMP message is 8 bytes, plus original IP header, plus 64-bits of data.
 ; Echo messages are allowed to be longer but we just won't send longer.
 icmp_scratch_length:	equ	ip_hdr_scratch_length + 16
-icmp_scratch_end:	equ	icmp_scratch + icmp_scratch - 1
+icmp_scratch_end:	equ	icmp_scratch + icmp_scratch_length - 1
+
+pseudo_scratch:		equ	icmp_scratch_end + 1
+pseudo_scratch_length:	equ	12
+pseudo_scratch_end:	equ	pseudo_scratch + pseudo_scratch_length + 1
+
+udp_scratch:		equ	pseudo_scratch_end + 1
+udp_scratch_length:	equ	8
+udp_scratch_end:	equ	udp_scratch + udp_scratch_length - 1
+
+sock_start:		equ	udp_scratch_end + 1
 
 ;env_data_start:		equ	cli_buffer_end + 1
 ;env_data_size:		equ	512
