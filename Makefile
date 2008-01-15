@@ -10,7 +10,7 @@ clean:
 
 monitor.bin:	$(SRCS)
 		z80asm -o $@ $<
-		@ls -l $@ | awk '{print $$8 ": " $$5 " bytes"}'
+		@ls -l $@ | awk '{print "$@: " $$5 " bytes"}'
 
 dump:		$(TARGETS)
 		hexdump -C $<
