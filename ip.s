@@ -55,19 +55,23 @@ ip_calc_checksum:
 	push	ix	; save
 	push	de	; save
 	and	a	; clear CF
+	push	af	; will be popped/pushed during loop
 ip_calc_checksum_loop:
 	ld	a,b
 	or	c
 	jp	z,ip_calc_checksum_end
 	ld	d,(ix+0)
 	ld	e,(ix+1)
+	pop	af
 	adc	hl,de
+	push	af	; keep track of carry
 	inc	ix
 	inc	hl
 	dec	bc
 	dec	bc
 	jp	ip_calc_checksum_loop
 ip_calc_checksum_end:
+	pop	af	; put stack right
 	; Invert HL (1's complement)
 	ld	a,h
 	cpl
