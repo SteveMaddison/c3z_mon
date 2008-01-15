@@ -56,7 +56,7 @@ ip_calc_checksum:
 	push	ix	; save
 	push	de	; save
 	and	a	; clear CF
-;	push	af	; will be popped/pushed during loop
+	push	af	; will be popped/pushed during loop
 ip_calc_checksum_loop:
 	ld	a,b	; check for end condition, but also...
 	cp	0
@@ -72,16 +72,16 @@ ip_calc_checksum_even:
 	ld	e,(ix+1)
 ip_calc_checksum_add:
 	ld	d,(ix+0)
-;	pop	af
-	add	hl,de	; tally sum
-;	push	af	; keep track of carry
+	pop	af
+	adc	hl,de	; tally sum
+	push	af	; keep track of carry
 	inc	ix	; skip to next 16-bit word
 	inc	ix
 	dec	bc
 	dec	bc
 	jp	ip_calc_checksum_loop
 ip_calc_checksum_end:
-;	pop	af	; put stack right
+	pop	af	; put stack right
 	; Invert HL (1's complement)
 	ld	a,h
 	cpl
@@ -152,12 +152,8 @@ ip_rx:
 	and	ip_hdr_version_mask
 	cp	ip_version << ip_hdr_version_shift
 	jp	nz,ip_rx_discard
-	; Convert IHL from words to bytes (*4)
-	rla
-	rla
-	; Save 16-bit result in BC
-	ld	b,0
-	ld	c,a
+	; Convert IHL from words to bytes (*4) with 16-bit result in BC
+	ld	bc,ip_ihl_min*4
 	; Check checksum
 	ld	hl,0
 	call	ip_calc_checksum
@@ -321,6 +317,7 @@ ip_tx_size_ok:
 ip_tx_slip:
 	; Checksum - sneakily skipped for loopback packets (shhh!)
 	ld	hl,0
+	ld	bc,ip_ihl_min*4
 	call	ip_calc_checksum
 	ld      (ix+ip_hdr_checksum+0),h
 	ld      (ix+ip_hdr_checksum+1),l
