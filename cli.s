@@ -4,8 +4,7 @@
 ; Steve Maddison, 15/02/2007
 ;
 
-cli_prompt:		defm	"> \0"
-cli_unknown_cmd:	defm	"Unknown command\n\0"
+cli_prompt:	defm	"> \0"
 
 cli_input:	ld	hl,cli_prompt		; output prompt
 		call	console_outs
@@ -144,14 +143,14 @@ cli_parse_check_char:
 
 		cp	' '
 		jp	nz,cli_parse_check_quote
+		ld	a,(de)
+		cp	0
+		jp	z,cli_parse_skip
 		ld	a,0xff
 		cp	c
 		jp	nz,cli_parse_skip
 		ld	a,0
 		ld	(hl),a
-		ld	a,(de)
-		cp	0
-		jp	z,cli_parse_skip
 		push	de
 		inc	b
 
@@ -181,7 +180,6 @@ cli_parse_quote_match:
 		ld	a,0
 		ld	(de),a
 		ld	c,0xff
-		jp	cli_parse_skip
 		; shift chars left until 0
 cli_parse_shift:
 		push	de
@@ -198,15 +196,18 @@ cli_parse_shift_end:
 		pop	hl
 		pop	de
 		jp	cli_parse_skip
+
 cli_parse_new_quote:
 		ld	a,(hl)
 		ld	c,a
 		ld	a,0
 		ld	(hl),a
+
 cli_parse_skip:
 		dec	hl		; Rinse and repeat
 		dec	de
 		jp	cli_parse_loop
+
 cli_parse_end:
 		ld	a,c		; Were we still looking for a quote?
 		cp	0xff
@@ -215,46 +216,24 @@ cli_parse_end:
 		call	console_outs
 		ld	a,'\n'
 		call	console_outb
-cli_parse_clear_params:
-		pop	hl		; Remove any addresses from stack
-		ld	a,h
-		or	l
-		jp	nz,cli_parse_clear_params
+		pop	hl		; remove end marker from stack
 		jp	cli_input
 cli_parse_ok:
-		ld	hl,cli_buffer
-		ld	a,(hl)
+		ld	a,(de)
 		cp	0
-		jp	z,cli_exec
+		jp	z,cli_parse_done
 		push	de
 		inc	b
-cli_exec:
+cli_parse_done:
 		pop	hl
 		ld	a,h
 		or	l
-		jp	z,cli_exec_end
-
-		ld	a,0xff
-
-		ld	de,builtin_cmd_echo
-		call	strcmp
-		jp	nz,cli_exec_echo_end
-		call	builtin_echo
-		jp	cli_exec_done
-cli_exec_echo_end:
-		ld	de,builtin_cmd_ver
-		call	strcmp
-		jp	nz,cli_exec_ver_end
-		call	builtin_ver
-		jp	cli_exec_done
-cli_exec_ver_end:
-
-cli_exec_done:
-		cp	0
-		jp	z,cli_exec_end
-		ld	hl,cli_unknown_cmd
+		jp	z,cli_parse_last_param
 		call	console_outs
-cli_exec_end:
+		ld	a,'\n'
+		call	console_outb
+		jp	cli_parse_done
+cli_parse_last_param:
 		jp	cli_input
 
 ; Returns with zero flag set if buffer is empty
