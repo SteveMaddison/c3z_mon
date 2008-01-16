@@ -6,11 +6,11 @@
 ; at http://map.tni.nl/articles/mult_div_shifts.php
 ;
 
-; Name: int_2s_comp_16
-; Desc: Calculate 2's complement of 16-bit value
+; Name: int_1s_comp_16
+; Desc: Calculate 1's complement of 16-bit value
 ; In:	HL = value to complement
 ; Out:	HL = complemented value
-int_2s_comp_16:
+int_1s_comp_16:
 		push	af
 		ld	a,h
 		cpl
@@ -18,8 +18,16 @@ int_2s_comp_16:
 		ld	a,l
 		cpl
 		ld	l,a
-		inc	hl
 		pop	af
+		ret
+
+; Name: int_2s_comp_16
+; Desc: Calculate 2's complement of 16-bit value
+; In:	HL = value to complement
+; Out:	HL = complemented value
+int_2s_comp_16:
+		call	int_1s_comp_16
+		inc	hl
 		ret
 
 ; Name: int_div_8

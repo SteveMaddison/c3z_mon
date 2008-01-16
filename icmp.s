@@ -92,8 +92,7 @@ icmp_rx_echo_request:
 	call	icmp_echo_reply
 	jp	icmp_rx_end
 icmp_rx_echo_reply:
-	cp	icmp_type_echo_reply
-	jp	nz,icmp_rx_end
+	; Need socket
 icmp_rx_end:
 	ret
 

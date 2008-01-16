@@ -58,45 +58,40 @@ ip_addr_loopback:	defb	ip_net_loopback,0,0,1	; (127).0.0.1
 ;	BC = length of data
 ;	HL = starting checksum value (should be 0 for new sums)
 ; Out:	HL = calculated checksum
+;	AF = as of last addition (so carry may be checked)
 ip_calc_checksum:
-	push	ix	; save
+	push	ix
 	push	de
-	and	a	; clear CF
-	push	af	; will be popped/pushed during loop
+	and	a		; clear CF
+	push	af		; will be popped/pushed during loop
 ip_calc_checksum_loop:
-	ld	a,b	; check for end condition, but also...
+	ld	a,b		; check for end condition, but also...
 	cp	0
 	jp	nz,ip_calc_checksum_even
 	ld	a,c
 	cp	0
 	jp	z,ip_calc_checksum_end
-	cp	1	; ... if there's just one byte left
+	cp	1			; ... if there's just one byte left
 	jp	nz,ip_calc_checksum_even
 	ld	e,0
-	inc	bc	; will be dec-ed twice later, becoming 0
+	inc	bc		; will be dec-ed twice later, becoming 0
 	jp	ip_calc_checksum_add
 ip_calc_checksum_even:
 	ld	e,(ix+1)
 ip_calc_checksum_add:
 	ld	d,(ix+0)
-	pop	af
-	adc	hl,de	; tally sum
-	push	af	; keep track of carry
-	inc	ix	; skip to next 16-bit word
+	pop	af		; restore flags (for carry)
+	adc	hl,de		; tally sum
+	push	af		; keep track of carry
+	inc	ix		; skip to next 16-bit word
 	inc	ix
 	dec	bc
 	dec	bc
 	jp	ip_calc_checksum_loop
 ip_calc_checksum_end:
-	pop	af	; put stack right
-	; Invert HL (1's complement)
-	ld	a,h
-	cpl
-	ld	h,a
-	ld	a,l
-	cpl
-	ld	l,a
-	pop	de	; restore
+	pop	af		; restore flags (for carry)
+	call	int_1s_comp_16	; invert
+	pop	de		; restore
 	pop	ix
 	ret
 
