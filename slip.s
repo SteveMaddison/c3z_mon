@@ -55,8 +55,11 @@ slip_intr_rx_check_end:
 		ld	hl,slip_internal_buffer
 		call	ip_rx
 slip_intr_rx_discard:
+		; Mark buffer as empty
 		ld	hl,0
-		jp	slip_intr_rx_end
+		; We're done with this datagram, but there may be a new
+		; one waiting, so start again.
+		jp	slip_intr_rx_loop
 slip_intr_rx_check_esc_end:
 		cp	slip_char_esc_end
 		jp	nz,slip_intr_rx_check_esc_esc
