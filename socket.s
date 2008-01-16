@@ -52,5 +52,23 @@ sock_search:
 	ld	hl,(sock_start)
 	ld	bc,sock_struct_key_length
 	ld	de,sock_scratch
+	; First search: specific IP
 	call	ll_search_bin
+	jp	z,sock_search_end
+	; Second search: listeners on specific address
+	ld	(ix+sock_struct_his_addr+0),0
+	ld	(ix+sock_struct_his_addr+1),0
+	ld	(ix+sock_struct_his_addr+2),0
+	ld	(ix+sock_struct_his_addr+3),0
+	ld	(ix+sock_struct_his_port+0),0
+	ld	(ix+sock_struct_his_port+1),0
+	call	ll_search_bin
+	jp	z,sock_search_end
+	; Third search: listeners on all addresses
+	ld	(ix+sock_struct_my_addr+0),0
+	ld	(ix+sock_struct_my_addr+1),0
+	ld	(ix+sock_struct_my_addr+2),0
+	ld	(ix+sock_struct_my_addr+3),0
+	call	ll_search_bin
+sock_search_end:
 	ret
