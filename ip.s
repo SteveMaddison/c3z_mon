@@ -71,7 +71,7 @@ ip_calc_checksum_loop:
 	ld	a,c
 	cp	0
 	jp	z,ip_calc_checksum_end
-	cp	1			; ... if there's just one byte left
+	cp	1		; ... if there's just one byte left
 	jp	nz,ip_calc_checksum_even
 	ld	e,0
 	inc	bc		; will be dec-ed twice later, becoming 0
@@ -186,6 +186,7 @@ ip_rx:
 	jp	nz,ip_rx_discard
 	; Convert IHL from words to bytes (*4) with 16-bit result in BC
 	ld	a,(ix+ip_hdr_ihl)
+	and	ip_hdr_ihl_mask
 	rla
 	rla
 	ld	b,0

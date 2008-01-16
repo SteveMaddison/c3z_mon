@@ -15,6 +15,14 @@ sock_struct_length:		equ	17
 
 sock_struct_key_length:		equ	13
 
+; Name: sock_callback
+; Desc: Jump to the callback associtated with a socket
+; In:	IX = address of socket structure
+sock_callback:
+	ld	ix,(ix+sock_struct_callback)
+	jp	(ix)
+	; No "ret" here! We use that of the routine we just
+	; jumped to.
 
 sock_init:
 	ld	hl,0
