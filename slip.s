@@ -35,7 +35,77 @@ slip_check_datagram_size:
 		ret
 
 ; Name: slip_intr_rx
+; Desc: Receive data from SLIP interface on interrupt
 slip_intr_rx:
+		push	af
+		push	hl
+		ld	hl,(slip_buffer_ptr)
+slip_intr_rx_loop:
+		; Check UART for data
+		call	uart_rx_ready_no_block
+		jp	z,slip_intr_rx_end
+		in	a,(uart_rbr)
+slip_intr_rx_check_end:
+		cp	slip_char_end
+		jp	nz,slip_intr_rx_check_esc_end
+		; Check for (over) full buffer
+		call	slip_rx_buffer_full
+		jp	nc,slip_intr_rx_discard
+		; Pass datagram to IP layer
+		ld	hl,slip_internal_buffer
+		call	ip_rx
+slip_intr_rx_discard:
+		ld	hl,0
+		jp	slip_intr_rx_end
+slip_intr_rx_check_esc_end:
+		cp	slip_char_esc_end
+		jp	nz,slip_intr_rx_check_esc_esc
+		ld	a,(hl)
+		cp	slip_char_esc
+		jp	nz,slip_intr_rx_default
+		ld	(hl),slip_char_end
+		jp	slip_intr_rx_loop
+slip_intr_rx_check_esc_esc:
+		cp	slip_char_esc_esc
+		jp	nz,slip_intr_rx_default
+		ld	a,(hl)
+		cp	slip_char_esc
+		jp	nz,slip_intr_rx_default
+		ld	(hl),slip_char_esc
+		jp	slip_intr_rx_loop
+slip_intr_rx_default:
+		; Is the buffer empty?
+		push	af
+		ld	a,h
+		or	l
+		jp	z,slip_intr_rx_write
+		pop	af
+		; Is the buffer full?
+		call	slip_rx_buffer_full
+		jp	nc,slip_intr_rx_end
+		; Only now do we increment the pointer
+		inc	hl
+slip_intr_rx_write:
+		ld	(hl),a
+		jp	slip_intr_rx_loop
+slip_intr_rx_end:
+		ld	(slip_buffer_ptr),hl
+		pop	hl
+		pop	af
+		ret
+
+; Name: slip_rx_buffer_full
+; Desc: Check if buffer is full
+; In:	HL = buffer pointer
+; Out:	CF = clear if buffer full
+slip_rx_buffer_full:
+		push	de
+		push	hl
+		ld	de,slip_buffer_end
+		and	a	; clear CF
+		sbc	hl,de
+		pop	hl
+		pop	de
 		ret
 
 ; Name: slip_datagram_rx
@@ -160,7 +230,7 @@ slip_init:
 		ld	de,slip_driver		; Driver
 		ld	hl,slip_dev_name	; Name
 		call	dev_add
-		ld	hl,slip_internal_buffer
+		ld	hl,0
 		ld	(slip_buffer_ptr),hl
 		ret
 
@@ -175,3 +245,4 @@ slip_set_buffer:
 		ld	hl,slip_internal_buffer
 slip_set_buffer_end:
 		ret
+

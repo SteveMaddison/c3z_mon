@@ -6,7 +6,10 @@
 
 ; For Mode 1:
 ; Interrupt handler is located at 0x38
-intr_mode1:	defm 	"ABCD"
+intr_mode1:
+		di
+		call	slip_intr_rx
+		ei
 		reti
 
 intr_init:

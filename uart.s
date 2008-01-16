@@ -59,6 +59,16 @@ uart_rx_ready_loop:
 		pop	af
 		ret
 
+; Name: uart_rx_ready_no_block
+; Desc: Check if UART has data
+; Out:	ZF = cleared if UART has data
+uart_rx_ready_no_block:
+		push	af
+		in	a,(uart_lsr)	; fetch the conrtol register
+		bit	0,a		; bit will be set if UART has data
+		pop	af
+		ret
+
 ; uart_tx
 ; Sends byte in A to the UART
 uart_tx:	call	uart_tx_ready
@@ -96,4 +106,3 @@ uart_tx_ready_loop:
 		jp	z,uart_tx_ready_loop
 		pop	af
 		ret
-
