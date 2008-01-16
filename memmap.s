@@ -63,6 +63,5 @@ sock_scratch_end:	equ	sock_scratch + sock_struct_key_length - 1
 ;env_free:		equ	env_start_ptr + 2
 
 ; This must come last!
-mem_heap_ptr:		equ	fs_buffer_ptr + 2
+mem_heap_ptr:		equ	sock_scratch_end + 1
 mem_heap:		equ	mem_heap_ptr + 2
-
