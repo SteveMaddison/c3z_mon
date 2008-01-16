@@ -75,6 +75,7 @@ icmp_echo_reply:
 	ld	(hl),icmp_type_echo_reply
 	; Set protocol
 	ld	a,ip_proto_icmp
+	; Send packet back
 	call	ip_tx
 	ret
 

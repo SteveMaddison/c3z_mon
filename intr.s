@@ -8,7 +8,11 @@
 ; Interrupt handler is located at 0x38
 intr_mode1:
 		di
+		exx	; Cheaper than pushing all registers, but
+			; means we can't use the alternate set in
+			; the interrupt handler.
 		call	slip_intr_rx
+		exx
 		ei
 		reti
 
