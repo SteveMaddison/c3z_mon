@@ -85,6 +85,20 @@ icmp_echo_reply:
 ;	DE = Data length
 ;	IX = Address of IP header
 icmp_rx:
+	push	hl	; save
+	push	ix
+	; Check checksum
+	push	de
+	pop	bc
+	push	hl
+	pop	ix
+	ld	hl,0
+	call	ip_calc_checksum
+	ld	a,h
+	or	l
+	pop	ix	; restore
+	pop	hl
+	jp	nz,icmp_rx_discard
 	ld	a,(hl)		; get message type
 icmp_rx_echo_request:
 	cp	icmp_type_echo_request
@@ -93,6 +107,7 @@ icmp_rx_echo_request:
 	jp	icmp_rx_end
 icmp_rx_echo_reply:
 	; Need socket
+icmp_rx_discard:
 icmp_rx_end:
 	ret
 

@@ -185,15 +185,17 @@ ip_rx:
 	cp	ip_version << ip_hdr_version_shift
 	jp	nz,ip_rx_discard
 	; Convert IHL from words to bytes (*4) with 16-bit result in BC
-	ld	bc,ip_ihl_min*4
+	ld	a,(ix+ip_hdr_ihl)
+	rla
+	rla
+	ld	b,0
+	ld	c,a
 	; Check checksum
-	ld	hl,0
+	ld	h,(ix+ip_hdr_checksum+0)
+	ld	l,(ix+ip_hdr_checksum+1)
 	call	ip_calc_checksum
-	ld	a,(ix+ip_hdr_checksum)
-	cp	h
-	jp	nz,ip_rx_discard
-	ld	a,(ix+ip_hdr_checksum+1)
-	cp	l
+	ld	a,h
+	or	l
 	jp	nz,ip_rx_discard
 	; Check if packet if for this host
 	call	ip_check_dest
