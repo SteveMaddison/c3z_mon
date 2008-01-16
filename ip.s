@@ -33,6 +33,12 @@ ip_proto_icmp:		equ	1
 ip_proto_tcp:		equ	6
 ip_proto_udp:		equ	17
 
+ip_proto_ip_str:	defm	"IP\0"
+ip_proto_icmp_str:	defm	"ICMP\0"
+ip_proto_udp_str:	defm	"UDP\0"
+ip_proto_tcp_str:	defm	"TCP\0"
+ip_proto_unknown_str:	defm	"?\0"
+
 ; IP configuration values
 ip_version:		equ	4
 ip_tos_default:		equ	0
@@ -90,7 +96,7 @@ ip_calc_checksum_end:
 	ld	a,l
 	cpl
 	ld	l,a
-	pop	de
+	pop	de	; restore
 	pop	ix
 	ret
 
@@ -130,6 +136,36 @@ ip_init:
 	call	ip_set_addr
 	ld	hl,ip_broadcast_default
 	call	ip_set_broadcast
+	ret
+
+; Name: ip_proto_str
+; Desc: Return string contianing name of protocol
+; In:	A = protocol number
+; Out:	HL = name string
+ip_proto_str:
+ip_proto_str_ip:
+	cp	ip_proto_ip
+	jp	nz,ip_proto_str_icmp
+	ld	hl,ip_proto_ip_str
+	jp	ip_proto_str_end
+ip_proto_str_icmp:
+	cp	ip_proto_icmp
+	jp	nz,ip_proto_str_tcp
+	ld	hl,ip_proto_icmp_str
+	jp	ip_proto_str_end
+ip_proto_str_tcp:
+	cp	ip_proto_tcp
+	jp	nz,ip_proto_str_udp
+	ld	hl,ip_proto_tcp_str
+	jp	ip_proto_str_end
+ip_proto_str_udp:
+	cp	ip_proto_udp
+	jp	nz,ip_proto_str_unknown
+	ld	hl,ip_proto_udp_str
+	jp	ip_proto_str_end
+ip_proto_str_unknown:
+	ld	hl,ip_proto_unknown_str
+ip_proto_str_end:
 	ret
 
 ; Name: ip_rx
