@@ -11,7 +11,6 @@ init:		org	0			; program starts at 0x0000
 
 title:		defm	"Cosam 3Z Monitor\0"
 version:	defm	"0.0.1\0"
-
 ; Pad to 0x38 for interrupt
 padding:	defm	"                          "
 include		"intr.s"
@@ -71,24 +70,10 @@ start:
 		;call	ide_init
 		call	slip_init
 		call	ip_init
-;		call	sock_init
+		;call	sock_init
+		call	intr_init
 
-		; Not yet...
-		;call	intr_init
-
-		ld	a,8
-		ld	bc,0x0a00
-		ld	de,0x0002
-		call	icmp_tx_echo
-
-;		ld	a,0x99
-;loop_99:
-;		ld	b,16
-;		call	uart_tx
-;		djnz	loop_99
-
-bla:
-		jp	bla
+bla:		jp	bla
 
 		; two newlines before command prompt
 		;ld	a,'\n'
@@ -102,4 +87,3 @@ bla:
 
 ; Include memory location data...
 include		"memmap.s"
-
