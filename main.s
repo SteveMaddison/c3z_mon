@@ -70,7 +70,7 @@ start:
 		;call	ide_init
 		call	slip_init
 		call	ip_init
-		;call	sock_init
+		call	sock_init
 		call	intr_init
 
 bla:		jp	bla

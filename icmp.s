@@ -99,6 +99,7 @@ icmp_rx:
 	pop	ix	; restore
 	pop	hl
 	jp	nz,icmp_rx_discard
+	; Checksum OK, process message
 	ld	a,(hl)		; get message type
 icmp_rx_echo_request:
 	cp	icmp_type_echo_request

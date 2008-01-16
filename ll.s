@@ -41,6 +41,44 @@ ll_get_end_end:
 		pop	bc
 		ret
 
+; Name: ll_search_bin
+; Desc: Search linked list for item with given binary value.
+; In:	HL = start pointer
+;	DE = address of data to search for
+;	BC = length of data
+; Out:	HL = address of item, or zero if not found,
+;	ZF = 1 if found, otherwise 0.
+ll_search_bin:
+		push	ix	; used to preverve BC
+		push	bc
+		pop	ix
+ll_search_bin_loop:
+		push	hl
+		inc	hl
+		inc	hl
+		push	ix
+		pop	bc
+		call	memcmp
+		jp	z,ll_search_bin_found
+		pop	hl
+		ld	a,(hl)
+		ld	b,a
+		inc	hl
+		or	(hl)
+		jp	z,ll_search_bin_not_found
+		ld	h,(hl)
+		ld	l,b
+		jp	ll_search_bin_loop
+ll_search_bin_found:
+		pop	hl
+		jp	ll_search_bin_end
+ll_search_bin_not_found:
+		dec	a	; We know A = 0
+		and	a	; Clear zero flag
+ll_search_bin_end:
+		pop	ix
+		ret
+
 ; Name: ll_search_str
 ; Desc: Search linked list for item with given ID (string).
 ; In:	HL = start pointer,

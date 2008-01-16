@@ -53,6 +53,8 @@ udp_scratch_length:	equ	8
 udp_scratch_end:	equ	udp_scratch + udp_scratch_length - 1
 
 sock_start:		equ	udp_scratch_end + 1
+sock_scratch:		equ	sock_start + 2
+sock_scratch_end:	equ	sock_scratch + sock_struct_key_length - 1
 
 ;env_data_start:		equ	cli_buffer_end + 1
 ;env_data_size:		equ	512
